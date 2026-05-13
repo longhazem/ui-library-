@@ -44,8 +44,8 @@ end
 local cacheValid = CheckVersion()
 
 local ASSET_MAP = {
-    homeIcon   = { path = CACHE_DIR.."/home_icon.png",
-                   url  = REPO.."models/Home-Chimney-2--Streamline-Freehand-1.png" },
+    homeIcon   = { path = CACHE_DIR.."/TOKAI_logo_no_bg.png",
+                   url  = REPO.."models/TOKAI_logo_no_bg.png" },
     lockIcon   = { path = CACHE_DIR.."/lock_icon.png",
                    url  = REPO.."models/Lock-Circle--Streamline-Freehand-1.png"    },
     unlockIcon = { path = CACHE_DIR.."/unlock_icon.png",
