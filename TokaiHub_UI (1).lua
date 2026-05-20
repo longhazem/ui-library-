@@ -371,13 +371,15 @@ function Library:CreateWindow()
     Instance.new("UICorner", main).CornerRadius = UDim.new(0,15)
     local mainStroke = Instance.new("UIStroke", main); mainStroke.Thickness = 2
 
-    -- ════ TOOLBAR ════
+    -- ════ TOOLBAR — cùng hàng ngang với sidebar, bên phải ngoài main ════
+    -- layout: [main] | sidebar(+8, w=35) | toolbar(+48, w=30)
     local toolbar = Instance.new("Frame", main)
     toolbar.Size = UDim2.new(0,30,0,95)
-    toolbar.Position = UDim2.new(1,5,0,10)
+    toolbar.Position = UDim2.new(1,48,0.5,-47)  -- X sau sidebar, Y căn giữa
     toolbar.BackgroundColor3 = Color3.new(1,1,1)
     toolbar.BackgroundTransparency = 0.5
     Instance.new("UICorner", toolbar).CornerRadius = UDim.new(0,8)
+    AttachCardGlow(toolbar, 270, 20, 1.5)
     local tbl = Instance.new("UIListLayout", toolbar)
     tbl.Padding = UDim.new(0,5)
     tbl.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -429,6 +431,40 @@ function Library:CreateWindow()
 
     local activeDropdown = nil
     local isTweening = false
+    local tabOrder = 0
+
+    local function AttachCardGlow(targetFrame, phaseOffset, speed, thickness)
+        phaseOffset = phaseOffset or 0; speed = speed or 22; thickness = thickness or 1.5
+        local stroke = Instance.new("UIStroke", targetFrame)
+        stroke.Thickness = thickness; stroke.Color = Color3.new(1,1,1)
+        stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        local grad = Instance.new("UIGradient", stroke)
+        grad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0,   Color3.fromRGB(255,182,193)),
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(230,150,255)),
+            ColorSequenceKeypoint.new(1,   Color3.fromRGB(255,182,193)),
+        })
+        grad.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0,    1),
+            NumberSequenceKeypoint.new(0.10, 0.9),
+            NumberSequenceKeypoint.new(0.20, 0),
+            NumberSequenceKeypoint.new(0.35, 0.9),
+            NumberSequenceKeypoint.new(0.5,  1),
+            NumberSequenceKeypoint.new(0.65, 0.9),
+            NumberSequenceKeypoint.new(0.80, 0),
+            NumberSequenceKeypoint.new(0.90, 0.9),
+            NumberSequenceKeypoint.new(1,    1),
+        })
+        coroutine.wrap(function()
+            local rot = phaseOffset; local last = tick()
+            while targetFrame and targetFrame.Parent do
+                RunService.Heartbeat:Wait()
+                local now = tick(); local dt = now - last; last = now
+                rot = (rot + speed * dt) % 360; grad.Rotation = rot
+            end
+        end)()
+        return stroke
+    end
 
     local function ToggleUI()
         if isTweening then return end; isTweening = true
@@ -594,15 +630,52 @@ function Library:CreateWindow()
 
     EnableDrag(main); EnableDrag(openBtn)
 
-    -- ════ SIDEBAR ════
-    local sidebar = Instance.new("Frame", main)
-    sidebar.Size = UDim2.new(0,35,0,200); sidebar.Position = UDim2.new(1,-40,0.5,-100)
+    -- ════ SIDEBAR — bên phải ngoài main, cùng hàng ngang với toolbar ════
+    local sidebar = Instance.new("ScrollingFrame", main)
+    sidebar.Size = UDim2.new(0,35,0,200)
+    sidebar.Position = UDim2.new(1,8,0.5,-100)  -- X ngay sát phải main, Y căn giữa
     sidebar.BackgroundColor3 = Color3.fromRGB(255,255,255); sidebar.BackgroundTransparency = 0.65
+    sidebar.ScrollBarThickness = 0
+    sidebar.ScrollingDirection = Enum.ScrollingDirection.Y
+    sidebar.CanvasSize = UDim2.new(0,0,0,0)
+    sidebar.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    sidebar.ElasticBehavior = Enum.ElasticBehavior.WhenScrollable
+    sidebar.ScrollingEnabled = true
+    sidebar.ClipsDescendants = true
     Instance.new("UICorner", sidebar).CornerRadius = UDim.new(1,0)
+    AttachCardGlow(sidebar, 90, 20, 1.5)
     local sbl = Instance.new("UIListLayout", sidebar)
     sbl.Padding = UDim.new(0,7)
     sbl.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    sbl.VerticalAlignment   = Enum.VerticalAlignment.Center
+    sbl.VerticalAlignment   = Enum.VerticalAlignment.Top
+    sbl.SortOrder = Enum.SortOrder.LayoutOrder
+    local sbPad = Instance.new("UIPadding", sidebar)
+    sbPad.PaddingTop = UDim.new(0,6); sbPad.PaddingBottom = UDim.new(0,6)
+
+    -- Mũi tên scroll indicator
+    local arrowUp = Instance.new("TextLabel", main)
+    arrowUp.Size = UDim2.new(0,20,0,11)
+    arrowUp.Position = UDim2.new(1,8,0.5,-106)
+    arrowUp.Text = "▴"; arrowUp.Font = Enum.Font.GothamBold; arrowUp.TextSize = 9
+    arrowUp.TextColor3 = Color3.fromRGB(235,110,140); arrowUp.BackgroundTransparency = 1
+    arrowUp.TextXAlignment = Enum.TextXAlignment.Center; arrowUp.Visible = false
+
+    local arrowDown = Instance.new("TextLabel", main)
+    arrowDown.Size = UDim2.new(0,20,0,11)
+    arrowDown.Position = UDim2.new(1,8,0.5,95)
+    arrowDown.Text = "▾"; arrowDown.Font = Enum.Font.GothamBold; arrowDown.TextSize = 9
+    arrowDown.TextColor3 = Color3.fromRGB(235,110,140); arrowDown.BackgroundTransparency = 1
+    arrowDown.TextXAlignment = Enum.TextXAlignment.Center; arrowDown.Visible = false
+
+    local function UpdateSidebarArrows()
+        local pos = sidebar.CanvasPosition.Y
+        local maxScroll = sidebar.AbsoluteCanvasSize.Y - sidebar.AbsoluteSize.Y
+        arrowUp.Visible   = pos > 4
+        arrowDown.Visible = maxScroll > 4 and pos < maxScroll - 4
+    end
+    sidebar:GetPropertyChangedSignal("CanvasPosition"):Connect(UpdateSidebarArrows)
+    sidebar:GetPropertyChangedSignal("AbsoluteCanvasSize"):Connect(UpdateSidebarArrows)
+    AttachScrollLock(sidebar)
 
     local tabContainer = Instance.new("Frame", main)
     tabContainer.Size = UDim2.new(0,335,0,215); tabContainer.Position = UDim2.new(0,8,0,10)
@@ -903,6 +976,8 @@ function Library:CreateWindow()
         end
 
         tabBtn.ScaleType = Enum.ScaleType.Fit
+        tabOrder = tabOrder + 1
+        tabBtn.LayoutOrder = tabOrder
         local tabPad = Instance.new("UIPadding", tabBtn)
         tabPad.PaddingTop = UDim.new(0,4); tabPad.PaddingBottom = UDim.new(0,4)
         tabPad.PaddingLeft = UDim.new(0,4); tabPad.PaddingRight = UDim.new(0,4)
@@ -948,6 +1023,7 @@ function Library:CreateWindow()
             local userBox=Instance.new("Frame",page); userBox.Size=UDim2.new(0.605,-3,0,ROW_H); userBox.Position=UDim2.new(0,0,0,row1Y)
             userBox.BackgroundColor3=Color3.fromRGB(255,255,255); userBox.BackgroundTransparency=0.55
             Instance.new("UICorner",userBox).CornerRadius=UDim.new(0,10)
+            AttachCardGlow(userBox, 0, 22, 1.2)
             do
                 local bar=Instance.new("Frame",userBox); bar.Size=UDim2.new(0,18,1,0); bar.BackgroundColor3=DarkPink; bar.BackgroundTransparency=0.2; Instance.new("UICorner",bar).CornerRadius=UDim.new(0,10)
                 local lbl=Instance.new("TextLabel",bar); lbl.Size=UDim2.new(1,0,1,0); lbl.Text="P\nL\nA\nY\nE\nR"; lbl.Font=Enum.Font.GothamBold; lbl.TextColor3=Color3.new(1,1,1); lbl.TextSize=7; lbl.TextWrapped=true; lbl.BackgroundTransparency=1
@@ -959,6 +1035,7 @@ function Library:CreateWindow()
             local g2=Instance.new("TextLabel",userBox); g2.Size=UDim2.new(0.52,0,0.28,0); g2.Position=UDim2.new(0,83,0.44,0); g2.Text=Players.LocalPlayer.DisplayName; g2.Font=Enum.Font.GothamBold; g2.TextColor3=DarkPink; g2.TextSize=13; g2.TextXAlignment=Enum.TextXAlignment.Left; g2.BackgroundTransparency=1
             local g3=Instance.new("TextLabel",userBox); g3.Size=UDim2.new(0.52,0,0.22,0); g3.Position=UDim2.new(0,83,0.74,0); g3.Text="Welcome to TokaiHub"; g3.Font=Enum.Font.Gotham; g3.TextColor3=Color3.fromRGB(160,100,120); g3.TextSize=7; g3.TextXAlignment=Enum.TextXAlignment.Left; g3.BackgroundTransparency=1
             local aboutBox=Instance.new("Frame",page); aboutBox.Size=UDim2.new(0.385,-3,0,ROW_H); aboutBox.Position=UDim2.new(0.615,0,0,row1Y); aboutBox.BackgroundColor3=Color3.fromRGB(255,255,255); aboutBox.BackgroundTransparency=0.55; Instance.new("UICorner",aboutBox).CornerRadius=UDim.new(0,10)
+            AttachCardGlow(aboutBox, 180, 22, 1.2)
             do
                 local bar=Instance.new("Frame",aboutBox); bar.Size=UDim2.new(0,18,1,0); bar.Position=UDim2.new(1,-18,0,0); bar.BackgroundColor3=DarkPink; bar.BackgroundTransparency=0.2; Instance.new("UICorner",bar).CornerRadius=UDim.new(0,10)
                 local lbl=Instance.new("TextLabel",bar); lbl.Size=UDim2.new(1,0,1,0); lbl.Text="A\nB\nO\nU\nT"; lbl.Font=Enum.Font.GothamBold; lbl.TextColor3=Color3.new(1,1,1); lbl.TextSize=7; lbl.TextWrapped=true; lbl.BackgroundTransparency=1
@@ -968,6 +1045,7 @@ function Library:CreateWindow()
             dcBtn.MouseButton1Click:Connect(function() PlayClickSound(); SafeCopy(DISCORD); dcBtn.Text="✓ Copied!"; task.delay(2, function() dcBtn.Text="💬 discord.gg/nn783R2fK2" end) end)
             local row2Y=row1Y+ROW_H+GAP
             local clockBox=Instance.new("Frame",page); clockBox.Size=UDim2.new(0.79,-3,0,ROW_H); clockBox.Position=UDim2.new(0,0,0,row2Y); clockBox.BackgroundColor3=Color3.fromRGB(255,255,255); clockBox.BackgroundTransparency=0.55; clockBox.ClipsDescendants=true; Instance.new("UICorner",clockBox).CornerRadius=UDim.new(0,10)
+            AttachCardGlow(clockBox, 90, 22, 1.2)
             do
                 local bar=Instance.new("Frame",clockBox); bar.Size=UDim2.new(0,18,1,0); bar.BackgroundColor3=DarkPink; bar.BackgroundTransparency=0.2; Instance.new("UICorner",bar).CornerRadius=UDim.new(0,10)
                 local lbl=Instance.new("TextLabel",bar); lbl.Size=UDim2.new(1,0,1,0); lbl.Text="T\nI\nM\nE"; lbl.Font=Enum.Font.GothamBold; lbl.TextColor3=Color3.new(1,1,1); lbl.TextSize=7; lbl.TextWrapped=true; lbl.BackgroundTransparency=1
@@ -997,6 +1075,7 @@ function Library:CreateWindow()
             end
             local execVal=MakeBadge(badgeRow,"Exec ","1"); local upVal=MakeBadge(badgeRow,"Up ","0m 0s"); local sessVal=MakeBadge(badgeRow,"Sess ","0s")
             local statusBox=Instance.new("Frame",page); statusBox.Size=UDim2.new(0.20,-3,0,ROW_H); statusBox.Position=UDim2.new(0.80,0,0,row2Y); statusBox.BackgroundColor3=Color3.fromRGB(255,255,255); statusBox.BackgroundTransparency=0.55; Instance.new("UICorner",statusBox).CornerRadius=UDim.new(0,10)
+            AttachCardGlow(statusBox, 270, 22, 1.2)
             do
                 local bar=Instance.new("Frame",statusBox); bar.Size=UDim2.new(0,18,1,0); bar.Position=UDim2.new(1,-18,0,0); bar.BackgroundColor3=DarkPink; bar.BackgroundTransparency=0.2; Instance.new("UICorner",bar).CornerRadius=UDim.new(0,10)
                 local lbl=Instance.new("TextLabel",bar); lbl.Size=UDim2.new(1,0,1,0); lbl.Text="S\nT\nA\nT\nU\nS"; lbl.Font=Enum.Font.GothamBold; lbl.TextColor3=Color3.new(1,1,1); lbl.TextSize=7; lbl.TextWrapped=true; lbl.BackgroundTransparency=1
