@@ -342,7 +342,7 @@ function Library:CreateWindow()
     openBtn.BackgroundColor3 = MainColor
     -- Bắt đầu bằng rbxthumb, async cập nhật homeIcon từ GitHub khi sẵn
     openBtn.Image = "rbxthumb://type=Asset&id=99217897221957&w=420&h=420"
-    openBtn.Visible = false
+    openBtn.Visible = true  -- hiện nút mở ngay từ đầu
     Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1,0)
     local openStroke = Instance.new("UIStroke", openBtn); openStroke.Thickness = 3
 
@@ -371,11 +371,10 @@ function Library:CreateWindow()
     Instance.new("UICorner", main).CornerRadius = UDim.new(0,15)
     local mainStroke = Instance.new("UIStroke", main); mainStroke.Thickness = 2
 
-    -- ════ TOOLBAR — cùng hàng ngang với sidebar, bên phải ngoài main ════
-    -- layout: [main] | sidebar(+8, w=35) | toolbar(+48, w=30)
+    -- ════ TOOLBAR — bên phải ngoài main, cùng hàng ngang với sidebar ════
     local toolbar = Instance.new("Frame", main)
     toolbar.Size = UDim2.new(0,30,0,95)
-    toolbar.Position = UDim2.new(1,48,0.5,-47)  -- X sau sidebar, Y căn giữa
+    toolbar.Position = UDim2.new(1,48,0.5,-47)  -- X sau sidebar(+8+35+5), Y căn giữa
     toolbar.BackgroundColor3 = Color3.new(1,1,1)
     toolbar.BackgroundTransparency = 0.5
     Instance.new("UICorner", toolbar).CornerRadius = UDim.new(0,8)
@@ -630,10 +629,10 @@ function Library:CreateWindow()
 
     EnableDrag(main); EnableDrag(openBtn)
 
-    -- ════ SIDEBAR — bên phải ngoài main, cùng hàng ngang với toolbar ════
+    -- ════ SIDEBAR — ngay sát phải main, cùng hàng ngang với toolbar ════
     local sidebar = Instance.new("ScrollingFrame", main)
     sidebar.Size = UDim2.new(0,35,0,200)
-    sidebar.Position = UDim2.new(1,8,0.5,-100)  -- X ngay sát phải main, Y căn giữa
+    sidebar.Position = UDim2.new(1,8,0.5,-100)  -- X sát phải main, Y căn giữa
     sidebar.BackgroundColor3 = Color3.fromRGB(255,255,255); sidebar.BackgroundTransparency = 0.65
     sidebar.ScrollBarThickness = 0
     sidebar.ScrollingDirection = Enum.ScrollingDirection.Y
@@ -652,17 +651,14 @@ function Library:CreateWindow()
     local sbPad = Instance.new("UIPadding", sidebar)
     sbPad.PaddingTop = UDim.new(0,6); sbPad.PaddingBottom = UDim.new(0,6)
 
-    -- Mũi tên scroll indicator
     local arrowUp = Instance.new("TextLabel", main)
-    arrowUp.Size = UDim2.new(0,20,0,11)
-    arrowUp.Position = UDim2.new(1,8,0.5,-106)
+    arrowUp.Size = UDim2.new(0,20,0,11); arrowUp.Position = UDim2.new(1,8,0.5,-106)
     arrowUp.Text = "▴"; arrowUp.Font = Enum.Font.GothamBold; arrowUp.TextSize = 9
     arrowUp.TextColor3 = Color3.fromRGB(235,110,140); arrowUp.BackgroundTransparency = 1
     arrowUp.TextXAlignment = Enum.TextXAlignment.Center; arrowUp.Visible = false
 
     local arrowDown = Instance.new("TextLabel", main)
-    arrowDown.Size = UDim2.new(0,20,0,11)
-    arrowDown.Position = UDim2.new(1,8,0.5,95)
+    arrowDown.Size = UDim2.new(0,20,0,11); arrowDown.Position = UDim2.new(1,8,0.5,95)
     arrowDown.Text = "▾"; arrowDown.Font = Enum.Font.GothamBold; arrowDown.TextSize = 9
     arrowDown.TextColor3 = Color3.fromRGB(235,110,140); arrowDown.BackgroundTransparency = 1
     arrowDown.TextXAlignment = Enum.TextXAlignment.Center; arrowDown.Visible = false
