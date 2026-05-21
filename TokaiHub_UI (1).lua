@@ -342,7 +342,7 @@ function Library:CreateWindow()
     openBtn.BackgroundColor3 = MainColor
     -- Bắt đầu bằng rbxthumb, async cập nhật homeIcon từ GitHub khi sẵn
     openBtn.Image = "rbxthumb://type=Asset&id=99217897221957&w=420&h=420"
-    openBtn.Visible = true  -- hiện nút mở ngay từ đầu
+    openBtn.Visible = true  -- hiện ngay từ đầu
     Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1,0)
     local openStroke = Instance.new("UIStroke", openBtn); openStroke.Thickness = 3
 
@@ -374,7 +374,7 @@ function Library:CreateWindow()
     -- ════ TOOLBAR — bên phải ngoài main, cùng hàng ngang với sidebar ════
     local toolbar = Instance.new("Frame", main)
     toolbar.Size = UDim2.new(0,30,0,95)
-    toolbar.Position = UDim2.new(1,48,0.5,-47)  -- X sau sidebar(+8+35+5), Y căn giữa
+    toolbar.Position = UDim2.new(1,48,0.5,-47)
     toolbar.BackgroundColor3 = Color3.new(1,1,1)
     toolbar.BackgroundTransparency = 0.5
     Instance.new("UICorner", toolbar).CornerRadius = UDim.new(0,8)
@@ -574,7 +574,7 @@ function Library:CreateWindow()
         CreateGlowBorder(0); CreateGlowBorder(180)
     end)
 
-    openBtn.MouseButton1Click:Connect(function() PlayClickSound(); ToggleUI() end)
+    -- openBtn click đã được xử lý trong block drag ở trên (InputEnded + didDrag check)
     UserInputService.InputBegan:Connect(function(inp, gpe)
         if not gpe and inp.KeyCode == _G.ToggleKey then PlayClickSound(); ToggleUI() end
     end)
@@ -627,12 +627,55 @@ function Library:CreateWindow()
         end)
     end
 
-    EnableDrag(main); EnableDrag(openBtn)
+    EnableDrag(main)
+
+    -- openBtn: drag chỉ kích hoạt khi kéo >8px, dưới đó coi là click bình thường
+    do
+        local dragging, dragInput, dragStart, startPos, didDrag
+        openBtn.InputBegan:Connect(function(inp)
+            if isLocked or dragLocked then return end
+            if inp.UserInputType == Enum.UserInputType.MouseButton1
+            or inp.UserInputType == Enum.UserInputType.Touch then
+                dragging = true; didDrag = false
+                dragStart = inp.Position; startPos = openBtn.Position
+                inp.Changed:Connect(function()
+                    if inp.UserInputState == Enum.UserInputState.End then dragging = false end
+                end)
+            end
+        end)
+        openBtn.InputChanged:Connect(function(inp)
+            if not isLocked and not dragLocked and
+               (inp.UserInputType == Enum.UserInputType.MouseMovement
+             or inp.UserInputType == Enum.UserInputType.Touch) then
+                dragInput = inp
+            end
+        end)
+        UserInputService.InputChanged:Connect(function(inp)
+            if inp == dragInput and dragging and not isLocked and not dragLocked then
+                local d = inp.Position - dragStart
+                if math.abs(d.X) > 8 or math.abs(d.Y) > 8 then
+                    didDrag = true
+                    openBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset+d.X,
+                                                  startPos.Y.Scale, startPos.Y.Offset+d.Y)
+                end
+            end
+        end)
+        UserInputService.InputEnded:Connect(function(inp)
+            if inp.UserInputType == Enum.UserInputType.MouseButton1
+            or inp.UserInputType == Enum.UserInputType.Touch then
+                if not didDrag then
+                    -- không kéo → coi là click → mở UI
+                    PlayClickSound(); ToggleUI()
+                end
+                dragging = false; dragLocked = false; didDrag = false
+            end
+        end)
+    end
 
     -- ════ SIDEBAR — ngay sát phải main, cùng hàng ngang với toolbar ════
     local sidebar = Instance.new("ScrollingFrame", main)
     sidebar.Size = UDim2.new(0,35,0,200)
-    sidebar.Position = UDim2.new(1,8,0.5,-100)  -- X sát phải main, Y căn giữa
+    sidebar.Position = UDim2.new(1,8,0.5,-100)
     sidebar.BackgroundColor3 = Color3.fromRGB(255,255,255); sidebar.BackgroundTransparency = 0.65
     sidebar.ScrollBarThickness = 0
     sidebar.ScrollingDirection = Enum.ScrollingDirection.Y
@@ -1171,3 +1214,4 @@ end, "Đang chạy script: wklbox", "👤")
 uselessTab:AddButton("👤 dolboeb228_negr", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/longhazem/TOKAIHUB/refs/heads/main/Audio"))()
 end, "Đang chạy script: dolboeb228_negr", "👤")
+,
