@@ -371,7 +371,37 @@ function Library:CreateWindow()
     Instance.new("UICorner", main).CornerRadius = UDim.new(0,15)
     local mainStroke = Instance.new("UIStroke", main); mainStroke.Thickness = 2
 
-    -- ════ TOOLBAR — bên phải ngoài main, cùng hàng ngang với sidebar ════
+    -- ════ GLOW BORDER HELPER ════
+    local tabOrder = 0
+    local function AttachCardGlow(f, phase, spd, thick)
+        phase=phase or 0; spd=spd or 22; thick=thick or 1.5
+        local st=Instance.new("UIStroke",f); st.Thickness=thick; st.Color=Color3.new(1,1,1)
+        st.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+        local gr=Instance.new("UIGradient",st)
+        gr.Color=ColorSequence.new({
+            ColorSequenceKeypoint.new(0,Color3.fromRGB(255,182,193)),
+            ColorSequenceKeypoint.new(0.5,Color3.fromRGB(230,150,255)),
+            ColorSequenceKeypoint.new(1,Color3.fromRGB(255,182,193)),
+        })
+        gr.Transparency=NumberSequence.new({
+            NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(0.10,0.9),
+            NumberSequenceKeypoint.new(0.20,0),NumberSequenceKeypoint.new(0.35,0.9),
+            NumberSequenceKeypoint.new(0.5,1),NumberSequenceKeypoint.new(0.65,0.9),
+            NumberSequenceKeypoint.new(0.80,0),NumberSequenceKeypoint.new(0.90,0.9),
+            NumberSequenceKeypoint.new(1,1),
+        })
+        coroutine.wrap(function()
+            local rot=phase; local last=tick()
+            while f and f.Parent do
+                RunService.Heartbeat:Wait()
+                local now=tick(); local dt=now-last; last=now
+                rot=(rot+spd*dt)%360; gr.Rotation=rot
+            end
+        end)()
+        return st
+    end
+
+    -- ════ TOOLBAR ════
     local toolbar = Instance.new("Frame", main)
     toolbar.Size = UDim2.new(0,30,0,95)
     toolbar.Position = UDim2.new(1,48,0.5,-47)
@@ -430,40 +460,6 @@ function Library:CreateWindow()
 
     local activeDropdown = nil
     local isTweening = false
-    local tabOrder = 0
-
-    local function AttachCardGlow(targetFrame, phaseOffset, speed, thickness)
-        phaseOffset = phaseOffset or 0; speed = speed or 22; thickness = thickness or 1.5
-        local stroke = Instance.new("UIStroke", targetFrame)
-        stroke.Thickness = thickness; stroke.Color = Color3.new(1,1,1)
-        stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-        local grad = Instance.new("UIGradient", stroke)
-        grad.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0,   Color3.fromRGB(255,182,193)),
-            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(230,150,255)),
-            ColorSequenceKeypoint.new(1,   Color3.fromRGB(255,182,193)),
-        })
-        grad.Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0,    1),
-            NumberSequenceKeypoint.new(0.10, 0.9),
-            NumberSequenceKeypoint.new(0.20, 0),
-            NumberSequenceKeypoint.new(0.35, 0.9),
-            NumberSequenceKeypoint.new(0.5,  1),
-            NumberSequenceKeypoint.new(0.65, 0.9),
-            NumberSequenceKeypoint.new(0.80, 0),
-            NumberSequenceKeypoint.new(0.90, 0.9),
-            NumberSequenceKeypoint.new(1,    1),
-        })
-        coroutine.wrap(function()
-            local rot = phaseOffset; local last = tick()
-            while targetFrame and targetFrame.Parent do
-                RunService.Heartbeat:Wait()
-                local now = tick(); local dt = now - last; last = now
-                rot = (rot + speed * dt) % 360; grad.Rotation = rot
-            end
-        end)()
-        return stroke
-    end
 
     local function ToggleUI()
         if isTweening then return end; isTweening = true
@@ -574,7 +570,7 @@ function Library:CreateWindow()
         CreateGlowBorder(0); CreateGlowBorder(180)
     end)
 
-    -- openBtn click đã được xử lý trong block drag ở trên (InputEnded + didDrag check)
+    -- openBtn handled via InputEnded below
     UserInputService.InputBegan:Connect(function(inp, gpe)
         if not gpe and inp.KeyCode == _G.ToggleKey then PlayClickSound(); ToggleUI() end
     end)
@@ -629,61 +625,47 @@ function Library:CreateWindow()
 
     EnableDrag(main)
 
-    -- openBtn: drag chỉ kích hoạt khi kéo >8px, dưới đó coi là click bình thường
+    -- openBtn: threshold 8px để tách drag vs click
     do
-        local dragging, dragInput, dragStart, startPos, didDrag
+        local dragging,dragInput,dragStart,startPos,didDrag
         openBtn.InputBegan:Connect(function(inp)
             if isLocked or dragLocked then return end
-            if inp.UserInputType == Enum.UserInputType.MouseButton1
-            or inp.UserInputType == Enum.UserInputType.Touch then
-                dragging = true; didDrag = false
-                dragStart = inp.Position; startPos = openBtn.Position
-                inp.Changed:Connect(function()
-                    if inp.UserInputState == Enum.UserInputState.End then dragging = false end
-                end)
+            if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
+                dragging=true; didDrag=false; dragStart=inp.Position; startPos=openBtn.Position
+                inp.Changed:Connect(function() if inp.UserInputState==Enum.UserInputState.End then dragging=false end end)
             end
         end)
         openBtn.InputChanged:Connect(function(inp)
-            if not isLocked and not dragLocked and
-               (inp.UserInputType == Enum.UserInputType.MouseMovement
-             or inp.UserInputType == Enum.UserInputType.Touch) then
-                dragInput = inp
+            if not isLocked and not dragLocked and (inp.UserInputType==Enum.UserInputType.MouseMovement or inp.UserInputType==Enum.UserInputType.Touch) then
+                dragInput=inp
             end
         end)
         UserInputService.InputChanged:Connect(function(inp)
-            if inp == dragInput and dragging and not isLocked and not dragLocked then
-                local d = inp.Position - dragStart
-                if math.abs(d.X) > 8 or math.abs(d.Y) > 8 then
-                    didDrag = true
-                    openBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset+d.X,
-                                                  startPos.Y.Scale, startPos.Y.Offset+d.Y)
+            if inp==dragInput and dragging and not isLocked and not dragLocked then
+                local d=inp.Position-dragStart
+                if math.abs(d.X)>8 or math.abs(d.Y)>8 then
+                    didDrag=true
+                    openBtn.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y)
                 end
             end
         end)
         UserInputService.InputEnded:Connect(function(inp)
-            if inp.UserInputType == Enum.UserInputType.MouseButton1
-            or inp.UserInputType == Enum.UserInputType.Touch then
-                if not didDrag then
-                    -- không kéo → coi là click → mở UI
-                    PlayClickSound(); ToggleUI()
-                end
-                dragging = false; dragLocked = false; didDrag = false
+            if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
+                if not didDrag then PlayClickSound(); ToggleUI() end
+                dragging=false; dragLocked=false; didDrag=false
             end
         end)
     end
 
-    -- ════ SIDEBAR — ngay sát phải main, cùng hàng ngang với toolbar ════
+
+    -- ════ SIDEBAR — ngay sát phải main, cùng hàng ngang ════
     local sidebar = Instance.new("ScrollingFrame", main)
-    sidebar.Size = UDim2.new(0,35,0,200)
-    sidebar.Position = UDim2.new(1,8,0.5,-100)
+    sidebar.Size = UDim2.new(0,35,0,200); sidebar.Position = UDim2.new(1,8,0.5,-100)
     sidebar.BackgroundColor3 = Color3.fromRGB(255,255,255); sidebar.BackgroundTransparency = 0.65
-    sidebar.ScrollBarThickness = 0
-    sidebar.ScrollingDirection = Enum.ScrollingDirection.Y
-    sidebar.CanvasSize = UDim2.new(0,0,0,0)
-    sidebar.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    sidebar.ScrollBarThickness = 0; sidebar.ScrollingDirection = Enum.ScrollingDirection.Y
+    sidebar.CanvasSize = UDim2.new(0,0,0,0); sidebar.AutomaticCanvasSize = Enum.AutomaticSize.Y
     sidebar.ElasticBehavior = Enum.ElasticBehavior.WhenScrollable
-    sidebar.ScrollingEnabled = true
-    sidebar.ClipsDescendants = true
+    sidebar.ScrollingEnabled = true; sidebar.ClipsDescendants = true
     Instance.new("UICorner", sidebar).CornerRadius = UDim.new(1,0)
     AttachCardGlow(sidebar, 90, 20, 1.5)
     local sbl = Instance.new("UIListLayout", sidebar)
@@ -693,24 +675,20 @@ function Library:CreateWindow()
     sbl.SortOrder = Enum.SortOrder.LayoutOrder
     local sbPad = Instance.new("UIPadding", sidebar)
     sbPad.PaddingTop = UDim.new(0,6); sbPad.PaddingBottom = UDim.new(0,6)
-
     local arrowUp = Instance.new("TextLabel", main)
     arrowUp.Size = UDim2.new(0,20,0,11); arrowUp.Position = UDim2.new(1,8,0.5,-106)
     arrowUp.Text = "▴"; arrowUp.Font = Enum.Font.GothamBold; arrowUp.TextSize = 9
     arrowUp.TextColor3 = Color3.fromRGB(235,110,140); arrowUp.BackgroundTransparency = 1
     arrowUp.TextXAlignment = Enum.TextXAlignment.Center; arrowUp.Visible = false
-
     local arrowDown = Instance.new("TextLabel", main)
     arrowDown.Size = UDim2.new(0,20,0,11); arrowDown.Position = UDim2.new(1,8,0.5,95)
     arrowDown.Text = "▾"; arrowDown.Font = Enum.Font.GothamBold; arrowDown.TextSize = 9
     arrowDown.TextColor3 = Color3.fromRGB(235,110,140); arrowDown.BackgroundTransparency = 1
     arrowDown.TextXAlignment = Enum.TextXAlignment.Center; arrowDown.Visible = false
-
     local function UpdateSidebarArrows()
-        local pos = sidebar.CanvasPosition.Y
-        local maxScroll = sidebar.AbsoluteCanvasSize.Y - sidebar.AbsoluteSize.Y
-        arrowUp.Visible   = pos > 4
-        arrowDown.Visible = maxScroll > 4 and pos < maxScroll - 4
+        local pos=sidebar.CanvasPosition.Y
+        local ms=sidebar.AbsoluteCanvasSize.Y-sidebar.AbsoluteSize.Y
+        arrowUp.Visible=pos>4; arrowDown.Visible=ms>4 and pos<ms-4
     end
     sidebar:GetPropertyChangedSignal("CanvasPosition"):Connect(UpdateSidebarArrows)
     sidebar:GetPropertyChangedSignal("AbsoluteCanvasSize"):Connect(UpdateSidebarArrows)
@@ -1214,4 +1192,3 @@ end, "Đang chạy script: wklbox", "👤")
 uselessTab:AddButton("👤 dolboeb228_negr", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/longhazem/TOKAIHUB/refs/heads/main/Audio"))()
 end, "Đang chạy script: dolboeb228_negr", "👤")
-,
