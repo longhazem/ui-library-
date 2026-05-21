@@ -342,7 +342,7 @@ function Library:CreateWindow()
     openBtn.BackgroundColor3 = MainColor
     -- Bắt đầu bằng rbxthumb, async cập nhật homeIcon từ GitHub khi sẵn
     openBtn.Image = "rbxthumb://type=Asset&id=99217897221957&w=420&h=420"
-    openBtn.Visible = true  -- hiện ngay từ đầu
+    openBtn.Visible = true
     Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1,0)
     local openStroke = Instance.new("UIStroke", openBtn); openStroke.Thickness = 3
 
@@ -570,7 +570,6 @@ function Library:CreateWindow()
         CreateGlowBorder(0); CreateGlowBorder(180)
     end)
 
-    -- openBtn handled via InputEnded below
     UserInputService.InputBegan:Connect(function(inp, gpe)
         if not gpe and inp.KeyCode == _G.ToggleKey then PlayClickSound(); ToggleUI() end
     end)
@@ -625,47 +624,46 @@ function Library:CreateWindow()
 
     EnableDrag(main)
 
-    -- openBtn: threshold 8px để tách drag vs click
+    -- openBtn: click vs drag tách bằng threshold 8px
+    -- Dùng openBtn.InputBegan + openBtn.InputEnded thay vì global UserInputService
     do
-        local dragging,dragInput,dragStart,startPos,didDrag
+        local dragging, dragInput, dragStart, startPos, didDrag
         openBtn.InputBegan:Connect(function(inp)
             if isLocked or dragLocked then return end
             if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
                 dragging=true; didDrag=false; dragStart=inp.Position; startPos=openBtn.Position
-                inp.Changed:Connect(function() if inp.UserInputState==Enum.UserInputState.End then dragging=false end end)
             end
         end)
         openBtn.InputChanged:Connect(function(inp)
-            if not isLocked and not dragLocked and (inp.UserInputType==Enum.UserInputType.MouseMovement or inp.UserInputType==Enum.UserInputType.Touch) then
-                dragInput=inp
-            end
-        end)
-        UserInputService.InputChanged:Connect(function(inp)
-            if inp==dragInput and dragging and not isLocked and not dragLocked then
+            if not isLocked and not dragLocked and dragging and
+               (inp.UserInputType==Enum.UserInputType.MouseMovement or inp.UserInputType==Enum.UserInputType.Touch) then
                 local d=inp.Position-dragStart
                 if math.abs(d.X)>8 or math.abs(d.Y)>8 then
                     didDrag=true
+                    dragInput=inp
                     openBtn.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y)
                 end
             end
         end)
-        UserInputService.InputEnded:Connect(function(inp)
+        openBtn.InputEnded:Connect(function(inp)
             if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
-                if not didDrag then PlayClickSound(); ToggleUI() end
-                dragging=false; dragLocked=false; didDrag=false
+                if dragging and not didDrag then
+                    PlayClickSound(); ToggleUI()
+                end
+                dragging=false; didDrag=false
             end
         end)
     end
 
 
-    -- ════ SIDEBAR — ngay sát phải main, cùng hàng ngang ════
+    -- ════ SIDEBAR ════
     local sidebar = Instance.new("ScrollingFrame", main)
     sidebar.Size = UDim2.new(0,35,0,200); sidebar.Position = UDim2.new(1,8,0.5,-100)
     sidebar.BackgroundColor3 = Color3.fromRGB(255,255,255); sidebar.BackgroundTransparency = 0.65
-    sidebar.ScrollBarThickness = 0; sidebar.ScrollingDirection = Enum.ScrollingDirection.Y
-    sidebar.CanvasSize = UDim2.new(0,0,0,0); sidebar.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    sidebar.ElasticBehavior = Enum.ElasticBehavior.WhenScrollable
-    sidebar.ScrollingEnabled = true; sidebar.ClipsDescendants = true
+    sidebar.ScrollBarThickness=0; sidebar.ScrollingDirection=Enum.ScrollingDirection.Y
+    sidebar.CanvasSize=UDim2.new(0,0,0,0); sidebar.AutomaticCanvasSize=Enum.AutomaticSize.Y
+    sidebar.ElasticBehavior=Enum.ElasticBehavior.WhenScrollable
+    sidebar.ScrollingEnabled=true; sidebar.ClipsDescendants=true
     Instance.new("UICorner", sidebar).CornerRadius = UDim.new(1,0)
     AttachCardGlow(sidebar, 90, 20, 1.5)
     local sbl = Instance.new("UIListLayout", sidebar)
@@ -674,17 +672,17 @@ function Library:CreateWindow()
     sbl.VerticalAlignment   = Enum.VerticalAlignment.Top
     sbl.SortOrder = Enum.SortOrder.LayoutOrder
     local sbPad = Instance.new("UIPadding", sidebar)
-    sbPad.PaddingTop = UDim.new(0,6); sbPad.PaddingBottom = UDim.new(0,6)
-    local arrowUp = Instance.new("TextLabel", main)
-    arrowUp.Size = UDim2.new(0,20,0,11); arrowUp.Position = UDim2.new(1,8,0.5,-106)
-    arrowUp.Text = "▴"; arrowUp.Font = Enum.Font.GothamBold; arrowUp.TextSize = 9
-    arrowUp.TextColor3 = Color3.fromRGB(235,110,140); arrowUp.BackgroundTransparency = 1
-    arrowUp.TextXAlignment = Enum.TextXAlignment.Center; arrowUp.Visible = false
-    local arrowDown = Instance.new("TextLabel", main)
-    arrowDown.Size = UDim2.new(0,20,0,11); arrowDown.Position = UDim2.new(1,8,0.5,95)
-    arrowDown.Text = "▾"; arrowDown.Font = Enum.Font.GothamBold; arrowDown.TextSize = 9
-    arrowDown.TextColor3 = Color3.fromRGB(235,110,140); arrowDown.BackgroundTransparency = 1
-    arrowDown.TextXAlignment = Enum.TextXAlignment.Center; arrowDown.Visible = false
+    sbPad.PaddingTop=UDim.new(0,6); sbPad.PaddingBottom=UDim.new(0,6)
+    local arrowUp=Instance.new("TextLabel",main)
+    arrowUp.Size=UDim2.new(0,20,0,11); arrowUp.Position=UDim2.new(1,8,0.5,-106)
+    arrowUp.Text="▴"; arrowUp.Font=Enum.Font.GothamBold; arrowUp.TextSize=9
+    arrowUp.TextColor3=Color3.fromRGB(235,110,140); arrowUp.BackgroundTransparency=1
+    arrowUp.TextXAlignment=Enum.TextXAlignment.Center; arrowUp.Visible=false
+    local arrowDown=Instance.new("TextLabel",main)
+    arrowDown.Size=UDim2.new(0,20,0,11); arrowDown.Position=UDim2.new(1,8,0.5,95)
+    arrowDown.Text="▾"; arrowDown.Font=Enum.Font.GothamBold; arrowDown.TextSize=9
+    arrowDown.TextColor3=Color3.fromRGB(235,110,140); arrowDown.BackgroundTransparency=1
+    arrowDown.TextXAlignment=Enum.TextXAlignment.Center; arrowDown.Visible=false
     local function UpdateSidebarArrows()
         local pos=sidebar.CanvasPosition.Y
         local ms=sidebar.AbsoluteCanvasSize.Y-sidebar.AbsoluteSize.Y
@@ -993,8 +991,7 @@ function Library:CreateWindow()
         end
 
         tabBtn.ScaleType = Enum.ScaleType.Fit
-        tabOrder = tabOrder + 1
-        tabBtn.LayoutOrder = tabOrder
+        tabOrder=tabOrder+1; tabBtn.LayoutOrder=tabOrder
         local tabPad = Instance.new("UIPadding", tabBtn)
         tabPad.PaddingTop = UDim.new(0,4); tabPad.PaddingBottom = UDim.new(0,4)
         tabPad.PaddingLeft = UDim.new(0,4); tabPad.PaddingRight = UDim.new(0,4)
@@ -1040,7 +1037,7 @@ function Library:CreateWindow()
             local userBox=Instance.new("Frame",page); userBox.Size=UDim2.new(0.605,-3,0,ROW_H); userBox.Position=UDim2.new(0,0,0,row1Y)
             userBox.BackgroundColor3=Color3.fromRGB(255,255,255); userBox.BackgroundTransparency=0.55
             Instance.new("UICorner",userBox).CornerRadius=UDim.new(0,10)
-            AttachCardGlow(userBox, 0, 22, 1.2)
+            AttachCardGlow(userBox,0,22,1.2)
             do
                 local bar=Instance.new("Frame",userBox); bar.Size=UDim2.new(0,18,1,0); bar.BackgroundColor3=DarkPink; bar.BackgroundTransparency=0.2; Instance.new("UICorner",bar).CornerRadius=UDim.new(0,10)
                 local lbl=Instance.new("TextLabel",bar); lbl.Size=UDim2.new(1,0,1,0); lbl.Text="P\nL\nA\nY\nE\nR"; lbl.Font=Enum.Font.GothamBold; lbl.TextColor3=Color3.new(1,1,1); lbl.TextSize=7; lbl.TextWrapped=true; lbl.BackgroundTransparency=1
@@ -1052,7 +1049,7 @@ function Library:CreateWindow()
             local g2=Instance.new("TextLabel",userBox); g2.Size=UDim2.new(0.52,0,0.28,0); g2.Position=UDim2.new(0,83,0.44,0); g2.Text=Players.LocalPlayer.DisplayName; g2.Font=Enum.Font.GothamBold; g2.TextColor3=DarkPink; g2.TextSize=13; g2.TextXAlignment=Enum.TextXAlignment.Left; g2.BackgroundTransparency=1
             local g3=Instance.new("TextLabel",userBox); g3.Size=UDim2.new(0.52,0,0.22,0); g3.Position=UDim2.new(0,83,0.74,0); g3.Text="Welcome to TokaiHub"; g3.Font=Enum.Font.Gotham; g3.TextColor3=Color3.fromRGB(160,100,120); g3.TextSize=7; g3.TextXAlignment=Enum.TextXAlignment.Left; g3.BackgroundTransparency=1
             local aboutBox=Instance.new("Frame",page); aboutBox.Size=UDim2.new(0.385,-3,0,ROW_H); aboutBox.Position=UDim2.new(0.615,0,0,row1Y); aboutBox.BackgroundColor3=Color3.fromRGB(255,255,255); aboutBox.BackgroundTransparency=0.55; Instance.new("UICorner",aboutBox).CornerRadius=UDim.new(0,10)
-            AttachCardGlow(aboutBox, 180, 22, 1.2)
+            AttachCardGlow(aboutBox,180,22,1.2)
             do
                 local bar=Instance.new("Frame",aboutBox); bar.Size=UDim2.new(0,18,1,0); bar.Position=UDim2.new(1,-18,0,0); bar.BackgroundColor3=DarkPink; bar.BackgroundTransparency=0.2; Instance.new("UICorner",bar).CornerRadius=UDim.new(0,10)
                 local lbl=Instance.new("TextLabel",bar); lbl.Size=UDim2.new(1,0,1,0); lbl.Text="A\nB\nO\nU\nT"; lbl.Font=Enum.Font.GothamBold; lbl.TextColor3=Color3.new(1,1,1); lbl.TextSize=7; lbl.TextWrapped=true; lbl.BackgroundTransparency=1
@@ -1062,7 +1059,7 @@ function Library:CreateWindow()
             dcBtn.MouseButton1Click:Connect(function() PlayClickSound(); SafeCopy(DISCORD); dcBtn.Text="✓ Copied!"; task.delay(2, function() dcBtn.Text="💬 discord.gg/nn783R2fK2" end) end)
             local row2Y=row1Y+ROW_H+GAP
             local clockBox=Instance.new("Frame",page); clockBox.Size=UDim2.new(0.79,-3,0,ROW_H); clockBox.Position=UDim2.new(0,0,0,row2Y); clockBox.BackgroundColor3=Color3.fromRGB(255,255,255); clockBox.BackgroundTransparency=0.55; clockBox.ClipsDescendants=true; Instance.new("UICorner",clockBox).CornerRadius=UDim.new(0,10)
-            AttachCardGlow(clockBox, 90, 22, 1.2)
+            AttachCardGlow(clockBox,90,22,1.2)
             do
                 local bar=Instance.new("Frame",clockBox); bar.Size=UDim2.new(0,18,1,0); bar.BackgroundColor3=DarkPink; bar.BackgroundTransparency=0.2; Instance.new("UICorner",bar).CornerRadius=UDim.new(0,10)
                 local lbl=Instance.new("TextLabel",bar); lbl.Size=UDim2.new(1,0,1,0); lbl.Text="T\nI\nM\nE"; lbl.Font=Enum.Font.GothamBold; lbl.TextColor3=Color3.new(1,1,1); lbl.TextSize=7; lbl.TextWrapped=true; lbl.BackgroundTransparency=1
@@ -1092,7 +1089,7 @@ function Library:CreateWindow()
             end
             local execVal=MakeBadge(badgeRow,"Exec ","1"); local upVal=MakeBadge(badgeRow,"Up ","0m 0s"); local sessVal=MakeBadge(badgeRow,"Sess ","0s")
             local statusBox=Instance.new("Frame",page); statusBox.Size=UDim2.new(0.20,-3,0,ROW_H); statusBox.Position=UDim2.new(0.80,0,0,row2Y); statusBox.BackgroundColor3=Color3.fromRGB(255,255,255); statusBox.BackgroundTransparency=0.55; Instance.new("UICorner",statusBox).CornerRadius=UDim.new(0,10)
-            AttachCardGlow(statusBox, 270, 22, 1.2)
+            AttachCardGlow(statusBox,270,22,1.2)
             do
                 local bar=Instance.new("Frame",statusBox); bar.Size=UDim2.new(0,18,1,0); bar.Position=UDim2.new(1,-18,0,0); bar.BackgroundColor3=DarkPink; bar.BackgroundTransparency=0.2; Instance.new("UICorner",bar).CornerRadius=UDim.new(0,10)
                 local lbl=Instance.new("TextLabel",bar); lbl.Size=UDim2.new(1,0,1,0); lbl.Text="S\nT\nA\nT\nU\nS"; lbl.Font=Enum.Font.GothamBold; lbl.TextColor3=Color3.new(1,1,1); lbl.TextSize=7; lbl.TextWrapped=true; lbl.BackgroundTransparency=1
