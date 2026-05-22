@@ -477,8 +477,8 @@ function Library:CreateWindow()
         PlayClickSound(); isLocked = not isLocked
         -- Dùng GitHub asset nếu có, fallback Decal resolve
         lockBtn.Image = isLocked
-            and GetAsset("unlockIcon", ICONS.unlock)
-            or  GetAsset("lockIcon",   ICONS.lock)
+            and GetAsset("lockIcon",   ICONS.lock)
+            or  GetAsset("unlockIcon", ICONS.unlock)
         lockBtn.BackgroundColor3 = isLocked and Color3.fromRGB(200,80,80) or Color3.fromRGB(80,200,80)
     end)
     local isBinding = false
@@ -1175,22 +1175,20 @@ uselessTab:AddButton("👤 dolboeb228_negr", function()
 end, "Đang chạy script: dolboeb228_negr", "👤")
 
 -- ════ SETTINGS TAB ════
-local settingsTab = win:CreateTab("Settings", "⚙️")
-settingsTab:AddSection("Timezone")
+local settingsTab = win:CreateTab("Settings", "7072725342")
+settingsTab:AddSection("🕐 Timezone / Múi giờ")
 settingsTab:AddDropdown("GMT Offset", {
     "GMT+0","GMT+1","GMT+2","GMT+3","GMT+4",
     "GMT+5","GMT+6","GMT+7","GMT+8",
     "GMT+9","GMT+10","GMT+11","GMT+12",
 }, "gmtOffsetKey", function(val)
-    local offset = tonumber(val:match("GMT%+(%d+)")) or 7
-    gmtOffset = offset
+    local offset = tonumber(val:match("GMT%+(%d+)"))
+    if offset then gmtOffset = offset end
 end)
-do
-    local saved = lib.GetSaved("gmtOffsetKey")
-    if saved then
-        local offset = tonumber(saved:match("GMT%+(%d+)"))
-        if offset then gmtOffset = offset end
-    end
-end
+settingsTab:AddSection("ℹ️ Info")
+settingsTab:AddButton("Reset về GMT+7", function()
+    gmtOffset = 7
+    Library.SetSaved("gmtOffsetKey", "GMT+7")
+end, "Đã reset về GMT+7", "✅")
 
 return lib
