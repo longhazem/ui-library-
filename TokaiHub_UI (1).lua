@@ -326,9 +326,13 @@ function Library:CreateWindow()
                 local img = GetAsset(assetKey, "")
                 if img ~= "" then
                     btn.Image = img
-                    ICONS[assetKey == "lockIcon" and "lock" or
-                          assetKey == "unlockIcon" and "unlock" or
-                          assetKey == "homeIcon" and "home" or assetKey] = img
+                    ICONS[assetKey == "lockIcon"   and "lock"    or
+                          assetKey == "unlockIcon" and "unlock"  or
+                          assetKey == "homeIcon"   and "home"    or
+                          assetKey == "tabHome"    and "tabHome"    or
+                          assetKey == "tabMain"    and "tabMain"    or
+                          assetKey == "tabDisplay" and "tabDisplay" or
+                          assetKey == "tabClose"   and "tabClose"   or assetKey] = img
                     break
                 end
             end
@@ -366,7 +370,7 @@ function Library:CreateWindow()
     main.Name = "MainFrame"; main.Size = UDim2.new(0, FRAME_W, 0, FRAME_H)
     main.Position = UDim2.new(0.5,0,0.5,0); main.AnchorPoint = Vector2.new(0.5,0.5)
     main.BackgroundColor3 = MainColor; main.BackgroundTransparency = 0.3
-    main.Parent = screenGui; main.ClipsDescendants = true
+    main.Parent = screenGui; main.ClipsDescendants = false
     main.Visible = false
     Instance.new("UICorner", main).CornerRadius = UDim.new(0,15)
     local mainStroke = Instance.new("UIStroke", main); mainStroke.Thickness = 2
@@ -435,6 +439,14 @@ function Library:CreateWindow()
     -- Async cập nhật icon lock/unlock từ GitHub khi sẵn
     AsyncUpdateIcon(lockBtn, "lockIcon",   ResolveImage("77585429015889"))
     -- unlock icon sẽ được cập nhật khi toggle
+    -- Preload tab icons từ GitHub
+    for _, key in ipairs({"tabHome","tabMain","tabDisplay","tabClose"}) do
+        task.spawn(function()
+            for _ = 1, 40 do task.wait(0.3)
+                if GetAsset(key,"") ~= "" then break end
+            end
+        end)
+    end
 
     local overlayGui = Instance.new("ScreenGui", GetGuiParent())
     overlayGui.Name = "TOKAIHUB_OVERLAY"
@@ -845,9 +857,9 @@ function Library:CreateWindow()
         local arrow = Instance.new("TextLabel", head)
         arrow.Size = UDim2.new(0,16,1,0); arrow.Position = UDim2.new(1,-18,0,0)
         arrow.Text = "V"; arrow.Font = Enum.Font.GothamBold; arrow.TextColor3 = DarkPink; arrow.TextSize = 9; arrow.BackgroundTransparency = 1
-        local listFrame = Instance.new("Frame", screenGui)
+        local listFrame = Instance.new("Frame", main)
         listFrame.BackgroundColor3 = Color3.fromRGB(255,243,247); listFrame.BackgroundTransparency = 0
-        listFrame.Visible = false; listFrame.ZIndex = 20; listFrame.ClipsDescendants = true
+        listFrame.Visible = false; listFrame.ZIndex = 50; listFrame.ClipsDescendants = false
         Instance.new("UICorner", listFrame).CornerRadius = UDim.new(0,8)
         local listStroke = Instance.new("UIStroke", listFrame); listStroke.Color = DarkPink; listStroke.Thickness = 1.0; listStroke.Transparency = 0.4
         local function CloseList(instant)
@@ -899,7 +911,8 @@ function Library:CreateWindow()
                 end)
             end
             listFrame.Size = UDim2.new(0,listW,0,0)
-            listFrame.Position = UDim2.new(0,absPos.X,0,absPos.Y+absSize.Y+4)
+            local mainAbs = main.AbsolutePosition
+            listFrame.Position = UDim2.new(0,absPos.X-mainAbs.X,0,absPos.Y-mainAbs.Y+absSize.Y+4)
             listFrame.Visible = true
             TweenService:Create(arrow, TweenInfo.new(0.22,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Rotation=180}):Play()
             TweenService:Create(headStroke, TweenInfo.new(0.15), {Transparency=0.3}):Play()
