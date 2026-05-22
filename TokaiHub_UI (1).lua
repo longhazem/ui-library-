@@ -44,15 +44,15 @@ end
 local cacheValid = CheckVersion()
 
 local ASSET_MAP = {
-    homeIcon     = { path = CACHE_DIR.."/TOKAI_logo_no_bg.png",       url = REPO.."models/TOKAI_logo_no_bg.png" },
-    tabHome      = { path = CACHE_DIR.."/tab_home.png",               url = REPO.."models/Home-Chimney-2--Streamline-Freehand-1.png" },
-    tabMain      = { path = CACHE_DIR.."/tab_main.png",               url = REPO.."models/Search-Magnifier--Streamline-Freehand-1.png" },
-    tabDisplay   = { path = CACHE_DIR.."/tab_display.png",            url = REPO.."models/View-Eye-1--Streamline-Freehand-1.png" },
-    tabClose     = { path = CACHE_DIR.."/tab_close.png",              url = REPO.."models/Login-Rectangle--Streamline-Freehand-1.png" },
-    lockIcon     = { path = CACHE_DIR.."/lock_icon.png",              url = REPO.."models/Lock-Circle--Streamline-Freehand-1.png" },
-    unlockIcon   = { path = CACHE_DIR.."/unlock_icon.png",            url = REPO.."models/Unlock-Circle--Streamline-Freehand-1.png" },
-    openSound    = { path = CACHE_DIR.."/open.mp3",                   url = REPO.."audio module/open.mp3" },
-    clickSound   = { path = CACHE_DIR.."/click.mp3",                  url = REPO.."audio module/click.mp3" },
+    homeIcon     = { path = CACHE_DIR.."/TOKAI_logo_no_bg.png",  url = REPO.."models/TOKAI_logo_no_bg.png" },
+    tabHome      = { path = CACHE_DIR.."/tab_home.png",          url = REPO.."models/Home-Chimney-2--Streamline-Freehand-1.png" },
+    tabMain      = { path = CACHE_DIR.."/tab_main.png",          url = REPO.."models/Search-Magnifier--Streamline-Freehand-1.png" },
+    tabDisplay   = { path = CACHE_DIR.."/tab_display.png",       url = REPO.."models/View-Eye-1--Streamline-Freehand-1.png" },
+    tabClose     = { path = CACHE_DIR.."/tab_close.png",         url = REPO.."models/Login-Rectangle--Streamline-Freehand-1.png" },
+    lockIcon     = { path = CACHE_DIR.."/lock_icon.png",         url = REPO.."models/Lock-Circle--Streamline-Freehand-1.png" },
+    unlockIcon   = { path = CACHE_DIR.."/unlock_icon.png",       url = REPO.."models/Unlock-Circle--Streamline-Freehand-1.png" },
+    openSound    = { path = CACHE_DIR.."/open.mp3",              url = REPO.."audio module/open.mp3" },
+    clickSound   = { path = CACHE_DIR.."/click.mp3",             url = REPO.."audio module/click.mp3" },
 }
 
 local loadedAssets = {}
@@ -326,13 +326,9 @@ function Library:CreateWindow()
                 local img = GetAsset(assetKey, "")
                 if img ~= "" then
                     btn.Image = img
-                    ICONS[assetKey == "lockIcon"   and "lock"    or
-                          assetKey == "unlockIcon" and "unlock"  or
-                          assetKey == "homeIcon"   and "home"    or
-                          assetKey == "tabHome"    and "tabHome"    or
-                          assetKey == "tabMain"    and "tabMain"    or
-                          assetKey == "tabDisplay" and "tabDisplay" or
-                          assetKey == "tabClose"   and "tabClose"   or assetKey] = img
+                    ICONS[assetKey == "lockIcon" and "lock" or
+                          assetKey == "unlockIcon" and "unlock" or
+                          assetKey == "homeIcon" and "home" or assetKey] = img
                     break
                 end
             end
@@ -392,12 +388,12 @@ function Library:CreateWindow()
 
     -- ════ TOOLBAR ════
     local toolbar = Instance.new("Frame", main)
-    toolbar.Size = UDim2.new(0,22,0,80)
-    toolbar.Position = UDim2.new(1,-26,0,4)  -- trong main, sát phải
+    toolbar.Size = UDim2.new(0,30,0,95)
+    toolbar.Position = UDim2.new(1,48,0.5,-47)
     toolbar.BackgroundColor3 = Color3.new(1,1,1)
     toolbar.BackgroundTransparency = 0.5
-    Instance.new("UICorner", toolbar).CornerRadius = UDim.new(0,6)
-    AttachCardGlow(toolbar,270,20,1)
+    Instance.new("UICorner", toolbar).CornerRadius = UDim.new(0,8)
+    AttachCardGlow(toolbar,270,20,1.5)
     local tbl = Instance.new("UIListLayout", toolbar)
     tbl.Padding = UDim.new(0,5)
     tbl.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -439,14 +435,6 @@ function Library:CreateWindow()
     -- Async cập nhật icon lock/unlock từ GitHub khi sẵn
     AsyncUpdateIcon(lockBtn, "lockIcon",   ResolveImage("77585429015889"))
     -- unlock icon sẽ được cập nhật khi toggle
-    -- Preload tab icons từ GitHub
-    for _, key in ipairs({"tabHome","tabMain","tabDisplay","tabClose"}) do
-        task.spawn(function()
-            for _ = 1, 40 do task.wait(0.3)
-                if GetAsset(key,"") ~= "" then break end
-            end
-        end)
-    end
 
     local overlayGui = Instance.new("ScreenGui", GetGuiParent())
     overlayGui.Name = "TOKAIHUB_OVERLAY"
@@ -648,19 +636,27 @@ function Library:CreateWindow()
 
     -- ════ SIDEBAR ════
     local sidebar = Instance.new("ScrollingFrame", main)
-    local SIDEBAR_W = 28
-    sidebar.Size = UDim2.new(0,SIDEBAR_W,1,0); sidebar.Position = UDim2.new(1,-SIDEBAR_W,0,0)
-    sidebar.BackgroundColor3 = Color3.fromRGB(255,182,193); sidebar.BackgroundTransparency = 0.55
+    sidebar.Size = UDim2.new(0,35,0,200); sidebar.Position = UDim2.new(1,8,0.5,-100)
+    sidebar.BackgroundColor3 = Color3.fromRGB(255,255,255); sidebar.BackgroundTransparency = 0.65
     sidebar.ScrollBarThickness=0; sidebar.ScrollingDirection=Enum.ScrollingDirection.Y
     sidebar.CanvasSize=UDim2.new(0,0,0,0); sidebar.AutomaticCanvasSize=Enum.AutomaticSize.Y
     sidebar.ElasticBehavior=Enum.ElasticBehavior.WhenScrollable; sidebar.ScrollingEnabled=true; sidebar.ClipsDescendants=true
-    Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0,8)
-    AttachCardGlow(sidebar,90,20,1)
+    Instance.new("UICorner", sidebar).CornerRadius = UDim.new(1,0)
+    AttachCardGlow(sidebar,90,20,1.5)
     local sbl = Instance.new("UIListLayout", sidebar)
     sbl.Padding = UDim.new(0,7); sbl.HorizontalAlignment=Enum.HorizontalAlignment.Center
     sbl.VerticalAlignment=Enum.VerticalAlignment.Top; sbl.SortOrder=Enum.SortOrder.LayoutOrder
     local sbPad=Instance.new("UIPadding",sidebar); sbPad.PaddingTop=UDim.new(0,6); sbPad.PaddingBottom=UDim.new(0,6)
-
+    local arrowUp=Instance.new("TextLabel",main); arrowUp.Size=UDim2.new(0,20,0,11); arrowUp.Position=UDim2.new(1,8,0.5,-106)
+    arrowUp.Text="▴"; arrowUp.Font=Enum.Font.GothamBold; arrowUp.TextSize=9; arrowUp.TextColor3=Color3.fromRGB(235,110,140); arrowUp.BackgroundTransparency=1; arrowUp.TextXAlignment=Enum.TextXAlignment.Center; arrowUp.Visible=false
+    local arrowDown=Instance.new("TextLabel",main); arrowDown.Size=UDim2.new(0,20,0,11); arrowDown.Position=UDim2.new(1,8,0.5,95)
+    arrowDown.Text="▾"; arrowDown.Font=Enum.Font.GothamBold; arrowDown.TextSize=9; arrowDown.TextColor3=Color3.fromRGB(235,110,140); arrowDown.BackgroundTransparency=1; arrowDown.TextXAlignment=Enum.TextXAlignment.Center; arrowDown.Visible=false
+    local function UpdateSidebarArrows()
+        local pos=sidebar.CanvasPosition.Y; local ms=sidebar.AbsoluteCanvasSize.Y-sidebar.AbsoluteSize.Y
+        arrowUp.Visible=pos>4; arrowDown.Visible=ms>4 and pos<ms-4
+    end
+    sidebar:GetPropertyChangedSignal("CanvasPosition"):Connect(UpdateSidebarArrows)
+    sidebar:GetPropertyChangedSignal("AbsoluteCanvasSize"):Connect(UpdateSidebarArrows)
     AttachScrollLock(sidebar)
 
     local tabContainer = Instance.new("Frame", main)
@@ -911,8 +907,8 @@ function Library:CreateWindow()
                 end)
             end
             listFrame.Size = UDim2.new(0,listW,0,0)
-            local mainAbs = main.AbsolutePosition
-            listFrame.Position = UDim2.new(0,absPos.X-mainAbs.X,0,absPos.Y-mainAbs.Y+absSize.Y+4)
+            local mPos = main.AbsolutePosition
+            listFrame.Position = UDim2.new(0,absPos.X-mPos.X,0,absPos.Y-mPos.Y+absSize.Y+4)
             listFrame.Visible = true
             TweenService:Create(arrow, TweenInfo.new(0.22,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Rotation=180}):Play()
             TweenService:Create(headStroke, TweenInfo.new(0.15), {Transparency=0.3}):Play()
@@ -1156,7 +1152,7 @@ local homeTab = win:CreateTab("Home", "IMG:tabHome")
 homeTab:AddDashboard()
 homeTab:AddCreation()
 
-local mainTab = win:CreateTab("Main", "7743875524")
+local mainTab = win:CreateTab("Main", "IMG:tabMain")
 mainTab:AddSection("🔘 Toggle Test")
 mainTab:AddToggle("Toggle A", "testToggleA", function(val) print("[Toggle A]", val) end)
 mainTab:AddToggle("Toggle B", "testToggleB", function(val) print("[Toggle B]", val) end)
