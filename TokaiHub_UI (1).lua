@@ -102,6 +102,7 @@ end
 -- ═══════════════════════════════════════════════
 
 local startTime = os.time()
+local gmtOffset = 7  -- GMT+7 mặc định (Việt Nam), thay đổi qua Settings
 _G.ToggleKey   = Enum.KeyCode.RightControl
 local isLocked = false
 local DISCORD  = "https://discord.gg/nn783R2fK2"
@@ -371,32 +372,17 @@ function Library:CreateWindow()
     Instance.new("UICorner", main).CornerRadius = UDim.new(0,15)
     local mainStroke = Instance.new("UIStroke", main); mainStroke.Thickness = 2
 
-    -- ════ GLOW BORDER HELPER ════
     local tabOrder = 0
     local function AttachCardGlow(f, phase, spd, thick)
         phase=phase or 0; spd=spd or 22; thick=thick or 1.5
         local st=Instance.new("UIStroke",f); st.Thickness=thick; st.Color=Color3.new(1,1,1)
         st.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
         local gr=Instance.new("UIGradient",st)
-        gr.Color=ColorSequence.new({
-            ColorSequenceKeypoint.new(0,Color3.fromRGB(255,182,193)),
-            ColorSequenceKeypoint.new(0.5,Color3.fromRGB(230,150,255)),
-            ColorSequenceKeypoint.new(1,Color3.fromRGB(255,182,193)),
-        })
-        gr.Transparency=NumberSequence.new({
-            NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(0.10,0.9),
-            NumberSequenceKeypoint.new(0.20,0),NumberSequenceKeypoint.new(0.35,0.9),
-            NumberSequenceKeypoint.new(0.5,1),NumberSequenceKeypoint.new(0.65,0.9),
-            NumberSequenceKeypoint.new(0.80,0),NumberSequenceKeypoint.new(0.90,0.9),
-            NumberSequenceKeypoint.new(1,1),
-        })
+        gr.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,182,193)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(230,150,255)),ColorSequenceKeypoint.new(1,Color3.fromRGB(255,182,193))})
+        gr.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(0.10,0.9),NumberSequenceKeypoint.new(0.20,0),NumberSequenceKeypoint.new(0.35,0.9),NumberSequenceKeypoint.new(0.5,1),NumberSequenceKeypoint.new(0.65,0.9),NumberSequenceKeypoint.new(0.80,0),NumberSequenceKeypoint.new(0.90,0.9),NumberSequenceKeypoint.new(1,1)})
         coroutine.wrap(function()
             local rot=phase; local last=tick()
-            while f and f.Parent do
-                RunService.Heartbeat:Wait()
-                local now=tick(); local dt=now-last; last=now
-                rot=(rot+spd*dt)%360; gr.Rotation=rot
-            end
+            while f and f.Parent do RunService.Heartbeat:Wait(); local now=tick(); local dt=now-last; last=now; rot=(rot+spd*dt)%360; gr.Rotation=rot end
         end)()
         return st
     end
@@ -408,7 +394,7 @@ function Library:CreateWindow()
     toolbar.BackgroundColor3 = Color3.new(1,1,1)
     toolbar.BackgroundTransparency = 0.5
     Instance.new("UICorner", toolbar).CornerRadius = UDim.new(0,8)
-    AttachCardGlow(toolbar, 270, 20, 1.5)
+    AttachCardGlow(toolbar,270,20,1.5)
     local tbl = Instance.new("UIListLayout", toolbar)
     tbl.Padding = UDim.new(0,5)
     tbl.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -623,11 +609,8 @@ function Library:CreateWindow()
     end
 
     EnableDrag(main)
-
-    -- openBtn: click vs drag tách bằng threshold 8px
-    -- Dùng openBtn.InputBegan + openBtn.InputEnded thay vì global UserInputService
     do
-        local dragging, dragInput, dragStart, startPos, didDrag
+        local dragging,dragStart,startPos,didDrag
         openBtn.InputBegan:Connect(function(inp)
             if isLocked or dragLocked then return end
             if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
@@ -635,26 +618,22 @@ function Library:CreateWindow()
             end
         end)
         openBtn.InputChanged:Connect(function(inp)
-            if not isLocked and not dragLocked and dragging and
-               (inp.UserInputType==Enum.UserInputType.MouseMovement or inp.UserInputType==Enum.UserInputType.Touch) then
+            if not dragging or isLocked or dragLocked then return end
+            if inp.UserInputType==Enum.UserInputType.MouseMovement or inp.UserInputType==Enum.UserInputType.Touch then
                 local d=inp.Position-dragStart
                 if math.abs(d.X)>8 or math.abs(d.Y)>8 then
                     didDrag=true
-                    dragInput=inp
                     openBtn.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y)
                 end
             end
         end)
         openBtn.InputEnded:Connect(function(inp)
             if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
-                if dragging and not didDrag then
-                    PlayClickSound(); ToggleUI()
-                end
+                if dragging and not didDrag then PlayClickSound(); ToggleUI() end
                 dragging=false; didDrag=false
             end
         end)
     end
-
 
     -- ════ SIDEBAR ════
     local sidebar = Instance.new("ScrollingFrame", main)
@@ -662,30 +641,19 @@ function Library:CreateWindow()
     sidebar.BackgroundColor3 = Color3.fromRGB(255,255,255); sidebar.BackgroundTransparency = 0.65
     sidebar.ScrollBarThickness=0; sidebar.ScrollingDirection=Enum.ScrollingDirection.Y
     sidebar.CanvasSize=UDim2.new(0,0,0,0); sidebar.AutomaticCanvasSize=Enum.AutomaticSize.Y
-    sidebar.ElasticBehavior=Enum.ElasticBehavior.WhenScrollable
-    sidebar.ScrollingEnabled=true; sidebar.ClipsDescendants=true
+    sidebar.ElasticBehavior=Enum.ElasticBehavior.WhenScrollable; sidebar.ScrollingEnabled=true; sidebar.ClipsDescendants=true
     Instance.new("UICorner", sidebar).CornerRadius = UDim.new(1,0)
-    AttachCardGlow(sidebar, 90, 20, 1.5)
+    AttachCardGlow(sidebar,90,20,1.5)
     local sbl = Instance.new("UIListLayout", sidebar)
-    sbl.Padding = UDim.new(0,7)
-    sbl.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    sbl.VerticalAlignment   = Enum.VerticalAlignment.Top
-    sbl.SortOrder = Enum.SortOrder.LayoutOrder
-    local sbPad = Instance.new("UIPadding", sidebar)
-    sbPad.PaddingTop=UDim.new(0,6); sbPad.PaddingBottom=UDim.new(0,6)
-    local arrowUp=Instance.new("TextLabel",main)
-    arrowUp.Size=UDim2.new(0,20,0,11); arrowUp.Position=UDim2.new(1,8,0.5,-106)
-    arrowUp.Text="▴"; arrowUp.Font=Enum.Font.GothamBold; arrowUp.TextSize=9
-    arrowUp.TextColor3=Color3.fromRGB(235,110,140); arrowUp.BackgroundTransparency=1
-    arrowUp.TextXAlignment=Enum.TextXAlignment.Center; arrowUp.Visible=false
-    local arrowDown=Instance.new("TextLabel",main)
-    arrowDown.Size=UDim2.new(0,20,0,11); arrowDown.Position=UDim2.new(1,8,0.5,95)
-    arrowDown.Text="▾"; arrowDown.Font=Enum.Font.GothamBold; arrowDown.TextSize=9
-    arrowDown.TextColor3=Color3.fromRGB(235,110,140); arrowDown.BackgroundTransparency=1
-    arrowDown.TextXAlignment=Enum.TextXAlignment.Center; arrowDown.Visible=false
+    sbl.Padding = UDim.new(0,7); sbl.HorizontalAlignment=Enum.HorizontalAlignment.Center
+    sbl.VerticalAlignment=Enum.VerticalAlignment.Top; sbl.SortOrder=Enum.SortOrder.LayoutOrder
+    local sbPad=Instance.new("UIPadding",sidebar); sbPad.PaddingTop=UDim.new(0,6); sbPad.PaddingBottom=UDim.new(0,6)
+    local arrowUp=Instance.new("TextLabel",main); arrowUp.Size=UDim2.new(0,20,0,11); arrowUp.Position=UDim2.new(1,8,0.5,-106)
+    arrowUp.Text="▴"; arrowUp.Font=Enum.Font.GothamBold; arrowUp.TextSize=9; arrowUp.TextColor3=Color3.fromRGB(235,110,140); arrowUp.BackgroundTransparency=1; arrowUp.TextXAlignment=Enum.TextXAlignment.Center; arrowUp.Visible=false
+    local arrowDown=Instance.new("TextLabel",main); arrowDown.Size=UDim2.new(0,20,0,11); arrowDown.Position=UDim2.new(1,8,0.5,95)
+    arrowDown.Text="▾"; arrowDown.Font=Enum.Font.GothamBold; arrowDown.TextSize=9; arrowDown.TextColor3=Color3.fromRGB(235,110,140); arrowDown.BackgroundTransparency=1; arrowDown.TextXAlignment=Enum.TextXAlignment.Center; arrowDown.Visible=false
     local function UpdateSidebarArrows()
-        local pos=sidebar.CanvasPosition.Y
-        local ms=sidebar.AbsoluteCanvasSize.Y-sidebar.AbsoluteSize.Y
+        local pos=sidebar.CanvasPosition.Y; local ms=sidebar.AbsoluteCanvasSize.Y-sidebar.AbsoluteSize.Y
         arrowUp.Visible=pos>4; arrowDown.Visible=ms>4 and pos<ms-4
     end
     sidebar:GetPropertyChangedSignal("CanvasPosition"):Connect(UpdateSidebarArrows)
@@ -1101,7 +1069,18 @@ function Library:CreateWindow()
             task.spawn(function()
                 local sessStart=os.time()
                 while task.wait(1) do
-                    timeLabel.Text=os.date("%I:%M:%S"); ampmLbl.Text=os.date("%p"); dateRight.Text=os.date("%A, %B %d")
+                    local t=os.time()+gmtOffset*3600
+                    local h=math.floor(t/3600)%24; local m=math.floor(t/60)%60; local s=t%60
+                    local h12=h%12; if h12==0 then h12=12 end
+                    local ampm=h>=12 and "PM" or "AM"
+                    local days={"Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"}
+                    local months={"January","February","March","April","May","June","July","August","September","October","November","December"}
+                    local wd=math.floor((t/86400+4)%7)+1
+                    local y,mo,d=tonumber(os.date("!%Y",t)),tonumber(os.date("!%m",t)),tonumber(os.date("!%d",t))
+                    timeLabel.Text=string.format("%02d:%02d:%02d",h12,m,s)
+                    ampmLbl.Text=ampm
+                    dateRight.Text=days[wd]..", "..months[mo].." "..tostring(d)
+                    infoLeft.Text="GMT+"..tostring(gmtOffset)
                     local diff=os.time()-startTime; local sess=os.time()-sessStart
                     execVal.Text=tostring(math.floor(diff/12)%8+1)
                     upVal.Text=string.format("%dm %ds",math.floor(diff/60),diff%60)
@@ -1124,13 +1103,18 @@ function Library:CreateWindow()
             MakeDropdown(page, text, yOffset, options, savedKey, callback); yOffset = yOffset + 32
         end
         function elements:AddCreation()
-            local card=Instance.new("Frame",page); card.Size=UDim2.new(1,0,0,52); card.Position=UDim2.new(0,0,0,yOffset); card.BackgroundColor3=Color3.fromRGB(255,255,255); card.BackgroundTransparency=0.42; Instance.new("UICorner",card).CornerRadius=UDim.new(0,10)
-            local cstroke=Instance.new("UIStroke",card); cstroke.Color=DarkPink; cstroke.Thickness=1.2
-            local bar=Instance.new("Frame",card); bar.Size=UDim2.new(0,5,1,0); bar.BackgroundColor3=DarkPink; bar.BackgroundTransparency=0.15; Instance.new("UICorner",bar).CornerRadius=UDim.new(0,10)
-            local title=Instance.new("TextLabel",card); title.Size=UDim2.new(1,-14,0,18); title.Position=UDim2.new(0,10,0,5); title.Text="✦ Creation"; title.Font=Enum.Font.GothamBold; title.TextColor3=DarkPink; title.TextSize=11; title.TextXAlignment=Enum.TextXAlignment.Left; title.BackgroundTransparency=1
-            local names=Instance.new("TextLabel",card); names.Size=UDim2.new(1,-14,0,14); names.Position=UDim2.new(0,10,0,23); names.Text="longtokai  ·  zentakt"; names.Font=Enum.Font.GothamBold; names.TextColor3=TextColor; names.TextSize=10; names.TextXAlignment=Enum.TextXAlignment.Left; names.BackgroundTransparency=1
-            local sub=Instance.new("TextLabel",card); sub.Size=UDim2.new(1,-14,0,12); sub.Position=UDim2.new(0,10,0,37); sub.Text="TokaiHub UI Library  —  All rights reserved"; sub.Font=Enum.Font.Gotham; sub.TextColor3=Color3.fromRGB(160,100,120); sub.TextSize=7; sub.TextXAlignment=Enum.TextXAlignment.Left; sub.BackgroundTransparency=1
-            yOffset = yOffset + 56
+            -- card nhỏ gọn: 4 chấm + tên tác giả nhỏ
+            local card=Instance.new("Frame",page); card.Size=UDim2.new(1,0,0,26); card.Position=UDim2.new(0,0,0,yOffset); card.BackgroundColor3=Color3.fromRGB(255,255,255); card.BackgroundTransparency=0.55; Instance.new("UICorner",card).CornerRadius=UDim.new(0,8)
+            local row=Instance.new("Frame",card); row.Size=UDim2.new(1,-10,1,0); row.Position=UDim2.new(0,8,0,0); row.BackgroundTransparency=1
+            local rl=Instance.new("UIListLayout",row); rl.FillDirection=Enum.FillDirection.Horizontal; rl.VerticalAlignment=Enum.VerticalAlignment.Center; rl.Padding=UDim.new(0,5)
+            -- 4 chấm màu
+            local dotColors={Color3.fromRGB(235,110,140),Color3.fromRGB(200,140,220),Color3.fromRGB(140,180,235),Color3.fromRGB(140,220,180)}
+            for _,col in ipairs(dotColors) do
+                local d=Instance.new("Frame",row); d.Size=UDim2.new(0,5,0,5); d.BackgroundColor3=col; Instance.new("UICorner",d).CornerRadius=UDim.new(1,0)
+            end
+            -- tên nhỏ
+            local names=Instance.new("TextLabel",row); names.Size=UDim2.new(0,0,1,0); names.AutomaticSize=Enum.AutomaticSize.X; names.Text="longtokai · zentakt"; names.Font=Enum.Font.Gotham; names.TextColor3=Color3.fromRGB(160,100,120); names.TextSize=8; names.BackgroundTransparency=1
+            yOffset = yOffset + 30
         end
         function elements:AddSection(text)
             local lbl=Instance.new("TextLabel",page); lbl.Size=UDim2.new(1,-4,0,18); lbl.Position=UDim2.new(0,2,0,yOffset); lbl.Text="── "..text.." ──"; lbl.Font=Enum.Font.GothamBold; lbl.TextColor3=DarkPink; lbl.TextSize=9; lbl.BackgroundTransparency=1
@@ -1189,3 +1173,24 @@ end, "Đang chạy script: wklbox", "👤")
 uselessTab:AddButton("👤 dolboeb228_negr", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/longhazem/TOKAIHUB/refs/heads/main/Audio"))()
 end, "Đang chạy script: dolboeb228_negr", "👤")
+
+-- ════ SETTINGS TAB ════
+local settingsTab = win:CreateTab("Settings", "⚙️")
+settingsTab:AddSection("Timezone")
+settingsTab:AddDropdown("GMT Offset", {
+    "GMT+0","GMT+1","GMT+2","GMT+3","GMT+4",
+    "GMT+5","GMT+6","GMT+7","GMT+8",
+    "GMT+9","GMT+10","GMT+11","GMT+12",
+}, "gmtOffsetKey", function(val)
+    local offset = tonumber(val:match("GMT%+(%d+)")) or 7
+    gmtOffset = offset
+end)
+do
+    local saved = lib.GetSaved("gmtOffsetKey")
+    if saved then
+        local offset = tonumber(saved:match("GMT%+(%d+)"))
+        if offset then gmtOffset = offset end
+    end
+end
+
+return lib
