@@ -864,8 +864,8 @@ function Library:CreateWindow()
             TweenService:Create(headStroke, TweenInfo.new(0.15), {Transparency=0}):Play()
             if instant then listFrame.Visible = false
             else
-                TweenService:Create(listFrame, TweenInfo.new(0.18,Enum.EasingStyle.Quad,Enum.EasingDirection.In), {Size=UDim2.new(0,listFrame.AbsoluteSize.X,0,0)}):Play()
-                task.delay(0.2, function() listFrame.Visible = false end)
+                TweenService:Create(listFrame, TweenInfo.new(0.15,Enum.EasingStyle.Quad,Enum.EasingDirection.In), {BackgroundTransparency=1}):Play()
+                task.delay(0.18, function() listFrame.Visible = false; listFrame.BackgroundTransparency = 0 end)
             end
         end
         local function OpenList()
@@ -878,19 +878,19 @@ function Library:CreateWindow()
                 local item = Instance.new("TextButton", listFrame)
                 item.Size = UDim2.new(1,0,0,ITEM_H); item.Position = UDim2.new(0,0,0,(i-1)*ITEM_H+3)
                 item.BackgroundColor3 = opt==selected and Color3.fromRGB(255,215,228) or Color3.fromRGB(255,248,251)
-                item.BackgroundTransparency = opt==selected and 0 or 1
+                item.BackgroundTransparency = opt==selected and 0 or 0.6
                 item.Font = Enum.Font.GothamBold; item.TextColor3 = opt==selected and DarkPink or TextColor
-                item.TextSize = 9; item.TextXAlignment = Enum.TextXAlignment.Left; item.ZIndex = 21; item.Text = ""
+                item.TextSize = 9; item.TextXAlignment = Enum.TextXAlignment.Left; item.ZIndex = 51; item.Text = ""
                 local pad = Instance.new("UIPadding", item); pad.PaddingLeft = UDim.new(0,10)
                 if i==1 or i==#options then Instance.new("UICorner", item).CornerRadius = UDim.new(0,8) end
                 local chk = Instance.new("TextLabel", item)
                 chk.Size = UDim2.new(0,12,1,0); chk.Text = opt==selected and "✓" or ""
-                chk.Font = Enum.Font.GothamBold; chk.TextSize = 8; chk.TextColor3 = DarkPink; chk.BackgroundTransparency = 1; chk.ZIndex = 22
+                chk.Font = Enum.Font.GothamBold; chk.TextSize = 8; chk.TextColor3 = DarkPink; chk.BackgroundTransparency = 1; chk.ZIndex = 52
                 local txt = Instance.new("TextLabel", item)
                 txt.Size = UDim2.new(1,-14,1,0); txt.Position = UDim2.new(0,14,0,0)
                 txt.Text = opt; txt.Font = Enum.Font.GothamBold; txt.TextSize = 9
                 txt.TextColor3 = opt==selected and DarkPink or TextColor
-                txt.TextXAlignment = Enum.TextXAlignment.Left; txt.BackgroundTransparency = 1; txt.ZIndex = 22
+                txt.TextXAlignment = Enum.TextXAlignment.Left; txt.BackgroundTransparency = 1; txt.ZIndex = 52
                 item.MouseEnter:Connect(function()
                     if opt~=selected then TweenService:Create(item, TweenInfo.new(0.1), {BackgroundTransparency=0.5, BackgroundColor3=Color3.fromRGB(255,228,238)}):Play(); txt.TextColor3 = DarkPink end
                 end)
@@ -906,13 +906,13 @@ function Library:CreateWindow()
                     ShowToast("Đã chọn: "..selected, "✅")
                 end)
             end
-            listFrame.Size = UDim2.new(0,listW,0,0)
             local mPos = main.AbsolutePosition
+            listFrame.Size = UDim2.new(0,listW,0,totalH)
             listFrame.Position = UDim2.new(0,absPos.X-mPos.X,0,absPos.Y-mPos.Y+absSize.Y+4)
-            listFrame.Visible = true
+            listFrame.BackgroundTransparency = 1; listFrame.Visible = true
             TweenService:Create(arrow, TweenInfo.new(0.22,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Rotation=180}):Play()
             TweenService:Create(headStroke, TweenInfo.new(0.15), {Transparency=0.3}):Play()
-            TweenService:Create(listFrame, TweenInfo.new(0.25,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Size=UDim2.new(0,listW,0,totalH)}):Play()
+            TweenService:Create(listFrame, TweenInfo.new(0.2,Enum.EasingStyle.Quad,Enum.EasingDirection.Out), {BackgroundTransparency=0}):Play()
         end
         local headBtn = Instance.new("TextButton", head)
         headBtn.Size = UDim2.new(1,0,1,0); headBtn.BackgroundTransparency = 1; headBtn.Text = ""; headBtn.ZIndex = 10
