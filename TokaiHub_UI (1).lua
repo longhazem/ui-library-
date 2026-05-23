@@ -49,6 +49,7 @@ local ASSET_MAP = {
     tabMain      = { path = CACHE_DIR.."/tab_main.png",          url = REPO.."models/Search-Magnifier--Streamline-Freehand-1.png" },
     tabDisplay   = { path = CACHE_DIR.."/tab_display.png",       url = REPO.."models/View-Eye-1--Streamline-Freehand-1.png" },
     tabClose     = { path = CACHE_DIR.."/tab_close.png",         url = REPO.."models/Login-Rectangle--Streamline-Freehand-1.png" },
+    tabSettings  = { path = CACHE_DIR.."/tab_settings.png",      url = REPO.."models/Settings-Cog-Double-1--Streamline-Freehand-1.png" },
     lockIcon     = { path = CACHE_DIR.."/lock_icon.png",         url = REPO.."models/Lock-Circle--Streamline-Freehand-1.png" },
     unlockIcon   = { path = CACHE_DIR.."/unlock_icon.png",       url = REPO.."models/Unlock-Circle--Streamline-Freehand-1.png" },
     openSound    = { path = CACHE_DIR.."/open.mp3",              url = REPO.."audio module/open.mp3" },
@@ -312,7 +313,7 @@ function Library:CreateWindow()
     --  · lock / unlock:   ưu tiên ảnh GitHub, fallback Decal resolve
     -- ════════════════════════════════════════════
     local ICONS = {
-        close   = ResolveImage("7072725342"),
+        close   = GetAsset("tabClose", ResolveImage("7072725342")),
         lock    = GetAsset("lockIcon",   ResolveImage("77585429015889")),
         unlock  = GetAsset("unlockIcon", ResolveImage("122613499308444")),
         keybind = ResolveImage("7072718840"),
@@ -434,6 +435,7 @@ function Library:CreateWindow()
 
     -- Async cập nhật icon lock/unlock từ GitHub khi sẵn
     AsyncUpdateIcon(lockBtn, "lockIcon",   ResolveImage("77585429015889"))
+    AsyncUpdateIcon(closeBtn, "tabClose",  ResolveImage("7072725342"))
     -- unlock icon sẽ được cập nhật khi toggle
 
     local overlayGui = Instance.new("ScreenGui", GetGuiParent())
@@ -853,9 +855,12 @@ function Library:CreateWindow()
         local arrow = Instance.new("TextLabel", head)
         arrow.Size = UDim2.new(0,16,1,0); arrow.Position = UDim2.new(1,-18,0,0)
         arrow.Text = "V"; arrow.Font = Enum.Font.GothamBold; arrow.TextColor3 = DarkPink; arrow.TextSize = 9; arrow.BackgroundTransparency = 1
-        local listFrame = Instance.new("Frame", main)
+        local listFrame = Instance.new("ScrollingFrame", main)
         listFrame.BackgroundColor3 = Color3.fromRGB(255,243,247); listFrame.BackgroundTransparency = 0
-        listFrame.Visible = false; listFrame.ZIndex = 50; listFrame.ClipsDescendants = false
+        listFrame.Visible = false; listFrame.ZIndex = 50; listFrame.ClipsDescendants = true
+        listFrame.ScrollBarThickness = 2; listFrame.ScrollBarImageColor3 = Color3.fromRGB(235,110,140)
+        listFrame.CanvasSize = UDim2.new(0,0,0,0); listFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        listFrame.ScrollingDirection = Enum.ScrollingDirection.Y; listFrame.ElasticBehavior = Enum.ElasticBehavior.Never
         Instance.new("UICorner", listFrame).CornerRadius = UDim.new(0,8)
         local listStroke = Instance.new("UIStroke", listFrame); listStroke.Color = DarkPink; listStroke.Thickness = 1.0; listStroke.Transparency = 0.4
         local function CloseList(instant)
@@ -907,8 +912,11 @@ function Library:CreateWindow()
                 end)
             end
             local mPos = main.AbsolutePosition
-            listFrame.Size = UDim2.new(0,listW,0,totalH)
-            listFrame.Position = UDim2.new(0,absPos.X-mPos.X,0,absPos.Y-mPos.Y+absSize.Y+4)
+            local relY = absPos.Y - mPos.Y + absSize.Y + 4
+            local maxH = math.max(40, FRAME_H - relY - 4)
+            local clampedH = math.min(totalH, maxH)
+            listFrame.Size = UDim2.new(0,listW,0,clampedH)
+            listFrame.Position = UDim2.new(0,absPos.X-mPos.X,0,relY)
             listFrame.BackgroundTransparency = 1; listFrame.Visible = true
             TweenService:Create(arrow, TweenInfo.new(0.22,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Rotation=180}):Play()
             TweenService:Create(headStroke, TweenInfo.new(0.15), {Transparency=0.3}):Play()
@@ -1175,7 +1183,7 @@ uselessTab:AddButton("👤 dolboeb228_negr", function()
 end, "Đang chạy script: dolboeb228_negr", "👤")
 
 -- ════ SETTINGS TAB ════
-local settingsTab = win:CreateTab("Settings", "7072725342")
+local settingsTab = win:CreateTab("Settings", "IMG:tabSettings")
 settingsTab:AddSection("🕐 Timezone / Múi giờ")
 settingsTab:AddDropdown("GMT Offset", {
     "GMT+0","GMT+1","GMT+2","GMT+3","GMT+4",
