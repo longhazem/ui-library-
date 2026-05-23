@@ -359,6 +359,20 @@ function Library:CreateWindow()
         end
     end)
 
+    -- ════ IDLE BREATHING ANIMATION cho openBtn ════
+    coroutine.wrap(function()
+        while openBtn and openBtn.Parent do
+            if openBtn.Visible then
+                TweenService:Create(openBtn, TweenInfo.new(1.1,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut), {Size=UDim2.new(0,55,0,55)}):Play()
+                task.wait(1.1)
+                TweenService:Create(openBtn, TweenInfo.new(1.1,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut), {Size=UDim2.new(0,50,0,50)}):Play()
+                task.wait(1.1)
+            else
+                task.wait(0.5)
+            end
+        end
+    end)()
+
     local screenW = Camera.ViewportSize.X
     local FRAME_W = math.clamp(math.floor(screenW * 0.88), 300, 390)
     local FRAME_H = 240
@@ -693,11 +707,20 @@ function Library:CreateWindow()
         btn.MouseButton1Click:Connect(function()
             PlayClickSound()
             local mp = UserInputService:GetMouseLocation(); SpawnRipple(mp.X, mp.Y)
-            TweenService:Create(btn, TweenInfo.new(0.07,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
-                {Size=UDim2.new(1,-8,0,25), Position=UDim2.new(0,4,0,yPos+1.5)}):Play()
-            task.delay(0.07, function()
-                TweenService:Create(btn, TweenInfo.new(0.2,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
-                    {Size=UDim2.new(1,-4,0,28), Position=UDim2.new(0,2,0,yPos)}):Play()
+            -- Squish mạnh hơn: thu nhỏ cả chiều ngang
+            TweenService:Create(btn, TweenInfo.new(0.06,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
+                {Size=UDim2.new(0.92,-8,0,22), Position=UDim2.new(0.04,4,0,yPos+3)}):Play()
+            -- Flash màu hồng đậm rồi bounce back
+            TweenService:Create(stroke, TweenInfo.new(0.06), {Color=Color3.fromRGB(255,80,120), Thickness=2.5}):Play()
+            task.delay(0.06, function()
+                TweenService:Create(btn, TweenInfo.new(0.08,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
+                    {Size=UDim2.new(1,-2,0,30), Position=UDim2.new(0,1,0,yPos-1)}):Play()
+                TweenService:Create(stroke, TweenInfo.new(0.06), {Color=Color3.fromRGB(255,180,210), Thickness=2}):Play()
+                task.delay(0.08, function()
+                    TweenService:Create(btn, TweenInfo.new(0.22,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
+                        {Size=UDim2.new(1,-4,0,28), Position=UDim2.new(0,2,0,yPos)}):Play()
+                    TweenService:Create(stroke, TweenInfo.new(0.2), {Color=DarkPink, Thickness=1.2}):Play()
+                end)
             end)
             if toastMsg then ShowToast(toastMsg, toastIcon) end
             if callback then callback() end
@@ -744,11 +767,28 @@ function Library:CreateWindow()
             TweenService:Create(pillGlow, TweenInfo.new(0.25), {Transparency=state and 0.3 or 1}):Play()
             TweenService:Create(rowStroke, TweenInfo.new(0.25), {Color=state and Green or Color3.fromRGB(200,200,200)}):Play()
             local targetPos = state and UDim2.new(1,-14,0.5,-6) or UDim2.new(0,2,0.5,-6)
-            TweenService:Create(knob, TweenInfo.new(0.08,Enum.EasingStyle.Quad,Enum.EasingDirection.In), {Size=UDim2.new(0,10,0,14)}):Play()
-            task.delay(0.08, function()
-                TweenService:Create(knob, TweenInfo.new(0.25,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
-                    {Position=targetPos, Size=UDim2.new(0,12,0,12)}):Play()
+            -- Squish rồi bounce mạnh hơn
+            TweenService:Create(knob, TweenInfo.new(0.07,Enum.EasingStyle.Quad,Enum.EasingDirection.In), {Size=UDim2.new(0,8,0,15)}):Play()
+            task.delay(0.07, function()
+                TweenService:Create(knob, TweenInfo.new(0.08,Enum.EasingStyle.Quad,Enum.EasingDirection.Out), {Size=UDim2.new(0,16,0,10)}):Play()
+                task.delay(0.08, function()
+                    TweenService:Create(knob, TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
+                        {Position=targetPos, Size=UDim2.new(0,12,0,12)}):Play()
+                end)
             end)
+            -- Row flash khi toggle
+            local flashCol = state and Color3.fromRGB(210,255,220) or Color3.fromRGB(255,240,245)
+            TweenService:Create(row, TweenInfo.new(0.1), {BackgroundColor3=flashCol}):Play()
+            task.delay(0.2, function()
+                TweenService:Create(row, TweenInfo.new(0.25), {BackgroundColor3=Color3.fromRGB(255,255,255)}):Play()
+            end)
+            -- Pulse glow nếu bật
+            if state then
+                TweenService:Create(pillGlow, TweenInfo.new(0.1), {Transparency=0}):Play()
+                task.delay(0.15, function()
+                    TweenService:Create(pillGlow, TweenInfo.new(0.3), {Transparency=0.3}):Play()
+                end)
+            end
             if onCallback then onCallback(state) end
         end
         local btn = Instance.new("TextButton", row)
@@ -999,10 +1039,25 @@ function Library:CreateWindow()
             end)
             TweenService:Create(tabBtn, TweenInfo.new(0.15), {BackgroundTransparency=0}):Play()
             TweenService:Create(tabStroke, TweenInfo.new(0.2), {Transparency=0}):Play()
-            TweenService:Create(tabBtn, TweenInfo.new(0.08,Enum.EasingStyle.Quad,Enum.EasingDirection.Out), {Size=UDim2.new(0,23,0,23)}):Play()
-            task.delay(0.08, function()
-                TweenService:Create(tabBtn, TweenInfo.new(0.2,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Size=UDim2.new(0,27,0,27)}):Play()
+            -- Bounce lớn hơn khi click tab
+            TweenService:Create(tabBtn, TweenInfo.new(0.07,Enum.EasingStyle.Quad,Enum.EasingDirection.Out), {Size=UDim2.new(0,20,0,20)}):Play()
+            task.delay(0.07, function()
+                TweenService:Create(tabBtn, TweenInfo.new(0.08), {Size=UDim2.new(0,31,0,31)}):Play()
+                task.delay(0.08, function()
+                    TweenService:Create(tabBtn, TweenInfo.new(0.25,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Size=UDim2.new(0,27,0,27)}):Play()
+                end)
             end)
+        end)
+        -- Hover float-up
+        tabBtn.MouseEnter:Connect(function()
+            if not page.Visible then
+                TweenService:Create(tabBtn, TweenInfo.new(0.18,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Size=UDim2.new(0,30,0,30), BackgroundTransparency=0.5}):Play()
+            end
+        end)
+        tabBtn.MouseLeave:Connect(function()
+            if not page.Visible then
+                TweenService:Create(tabBtn, TweenInfo.new(0.15,Enum.EasingStyle.Quad,Enum.EasingDirection.Out), {Size=UDim2.new(0,27,0,27), BackgroundTransparency=0.2}):Play()
+            end
         end)
 
         local yOffset = 4
@@ -1099,10 +1154,22 @@ function Library:CreateWindow()
         end
 
         function elements:AddButton(text, callback, toastMsg, toastIcon)
-            MakeAnimButton(page, text, yOffset, callback, toastMsg, toastIcon); yOffset = yOffset + 32
+            local btn = MakeAnimButton(page, text, yOffset, callback, toastMsg, toastIcon)
+            -- Slide-in từ phải khi thêm vào
+            btn.Position = UDim2.new(0.3,2,0,yOffset); btn.BackgroundTransparency = 1
+            task.defer(function()
+                TweenService:Create(btn, TweenInfo.new(0.28,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Position=UDim2.new(0,2,0,yOffset), BackgroundTransparency=0.45}):Play()
+            end)
+            yOffset = yOffset + 32
         end
         function elements:AddToggle(text, savedKey, callback)
-            MakeToggle(page, text, yOffset, savedKey, callback); yOffset = yOffset + 30
+            local tog = MakeToggle(page, text, yOffset, savedKey, callback)
+            -- Slide-in từ phải
+            tog.Position = UDim2.new(0.3,2,0,yOffset); tog.BackgroundTransparency = 1
+            task.defer(function()
+                TweenService:Create(tog, TweenInfo.new(0.28,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Position=UDim2.new(0,2,0,yOffset), BackgroundTransparency=0.45}):Play()
+            end)
+            yOffset = yOffset + 30
         end
         function elements:AddSlider(text, min, max, savedKey, suffix, callback)
             MakeSlider(page, text, yOffset, min, max, savedKey, suffix or "", callback); yOffset = yOffset + 44
@@ -1126,6 +1193,22 @@ function Library:CreateWindow()
         end
         function elements:AddSection(text)
             local lbl=Instance.new("TextLabel",page); lbl.Size=UDim2.new(1,-4,0,18); lbl.Position=UDim2.new(0,2,0,yOffset); lbl.Text="── "..text.." ──"; lbl.Font=Enum.Font.GothamBold; lbl.TextColor3=DarkPink; lbl.TextSize=9; lbl.BackgroundTransparency=1
+            -- Slide-in từ trái khi xuất hiện
+            lbl.Position = UDim2.new(-0.2,0,0,yOffset)
+            lbl.TextTransparency = 1
+            task.defer(function()
+                TweenService:Create(lbl, TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Position=UDim2.new(0,2,0,yOffset), TextTransparency=0}):Play()
+            end)
+            -- Shimmer màu nhịp nhàng
+            coroutine.wrap(function()
+                local cols = {DarkPink, Color3.fromRGB(200,120,200), Color3.fromRGB(255,140,170), DarkPink}
+                local i = 1
+                while lbl and lbl.Parent do
+                    task.wait(1.2)
+                    i = (i % #cols) + 1
+                    TweenService:Create(lbl, TweenInfo.new(0.6,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut), {TextColor3=cols[i]}):Play()
+                end
+            end)()
             yOffset = yOffset + 22
         end
 
