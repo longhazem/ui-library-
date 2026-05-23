@@ -466,6 +466,10 @@ function Library:CreateWindow()
 
     local function ToggleUI()
         if isTweening then return end; isTweening = true
+        -- Đóng GMT dropdown nếu đang mở
+        for _,v in pairs(main:GetChildren()) do
+            if v:IsA("Frame") and v.ZIndex==200 then v.Visible=false end
+        end
         if main.Visible then
             if activeDropdown then activeDropdown(true) end
             TweenService:Create(overlay, TweenInfo.new(0.3,Enum.EasingStyle.Quad,Enum.EasingDirection.Out), {BackgroundTransparency=1}):Play()
@@ -969,7 +973,8 @@ function Library:CreateWindow()
         headBtn.MouseButton1Click:Connect(function() PlayClickSound(); if isOpen then CloseList(false) else OpenList() end end)
         headBtn.MouseEnter:Connect(function() TweenService:Create(head, TweenInfo.new(0.15), {BackgroundTransparency=0.25}):Play() end)
         headBtn.MouseLeave:Connect(function() TweenService:Create(head, TweenInfo.new(0.15), {BackgroundTransparency=0.4}):Play() end)
-        return head
+        local function ToggleList() if isOpen then CloseList(false) else OpenList() end end
+        return head, ToggleList
     end
 
     -- ════════════════════════════════════════════
@@ -1022,6 +1027,10 @@ function Library:CreateWindow()
             if page.Visible then return end
             PlayClickSound()
             if activeDropdown then activeDropdown(true) end
+            -- Đóng GMT dropdown nếu đang mở (tìm và ẩn)
+            for _, v in pairs(screenGui:GetChildren()) do
+                if v:IsA("Frame") and v.ZIndex == 100 then v.Visible = false end
+            end
             for _, v in pairs(pages:GetChildren()) do
                 if v:IsA("ScrollingFrame") and v.Visible then
                     TweenService:Create(v, TweenInfo.new(0.18,Enum.EasingStyle.Quad,Enum.EasingDirection.In), {Position=UDim2.new(-0.15,0,0,0)}):Play()
@@ -1091,7 +1100,7 @@ function Library:CreateWindow()
             local dcBtn=Instance.new("TextButton",aboutBox); dcBtn.Size=UDim2.new(0.82,0,0.3,0); dcBtn.Position=UDim2.new(0.04,0,0.62,0); dcBtn.BackgroundColor3=Color3.fromRGB(255,255,255); dcBtn.BackgroundTransparency=0.4; dcBtn.Text="💬 discord.gg/nn783R2fK2"; dcBtn.Font=Enum.Font.GothamBold; dcBtn.TextColor3=DarkPink; dcBtn.TextSize=7; Instance.new("UICorner",dcBtn).CornerRadius=UDim.new(0,5)
             dcBtn.MouseButton1Click:Connect(function() PlayClickSound(); SafeCopy(DISCORD); dcBtn.Text="✓ Copied!"; task.delay(2, function() dcBtn.Text="💬 discord.gg/nn783R2fK2" end) end)
             local row2Y=row1Y+ROW_H+GAP
-            local clockBox=Instance.new("Frame",page); clockBox.Size=UDim2.new(0.79,-3,0,ROW_H); clockBox.Position=UDim2.new(0,0,0,row2Y); clockBox.BackgroundColor3=Color3.fromRGB(255,255,255); clockBox.BackgroundTransparency=0.55; clockBox.ClipsDescendants=true; Instance.new("UICorner",clockBox).CornerRadius=UDim.new(0,10)
+            local clockBox=Instance.new("Frame",page); clockBox.Size=UDim2.new(0.79,-3,0,ROW_H); clockBox.Position=UDim2.new(0,0,0,row2Y); clockBox.BackgroundColor3=Color3.fromRGB(255,255,255); clockBox.BackgroundTransparency=0.55; clockBox.ClipsDescendants=false; Instance.new("UICorner",clockBox).CornerRadius=UDim.new(0,10)
             AttachCardGlow(clockBox,90,22,1.2)
             do
                 local bar=Instance.new("Frame",clockBox); bar.Size=UDim2.new(0,18,1,0); bar.BackgroundColor3=DarkPink; bar.BackgroundTransparency=0.2; Instance.new("UICorner",bar).CornerRadius=UDim.new(0,10)
@@ -1099,7 +1108,7 @@ function Library:CreateWindow()
             end
             local timeRow=Instance.new("Frame",clockBox); timeRow.Size=UDim2.new(1,-28,0,28); timeRow.Position=UDim2.new(0,22,0,4); timeRow.BackgroundTransparency=1
             local trl=Instance.new("UIListLayout",timeRow); trl.FillDirection=Enum.FillDirection.Horizontal; trl.VerticalAlignment=Enum.VerticalAlignment.Center; trl.Padding=UDim.new(0,5)
-            local timeLabel=Instance.new("TextLabel",timeRow); timeLabel.Size=UDim2.new(0,110,1,0); timeLabel.Font=Enum.Font.GothamBold; timeLabel.TextSize=22; timeLabel.TextColor3=TextColor; timeLabel.BackgroundTransparency=1; timeLabel.TextXAlignment=Enum.TextXAlignment.Left
+            local timeLabel=Instance.new("TextLabel",timeRow); timeLabel.Size=UDim2.new(0,110,1,0); timeLabel.Font=Enum.Font.GothamBold; timeLabel.TextSize=22; timeLabel.TextColor3=TextColor; timeLabel.BackgroundTransparency=1; timeLabel.TextXAlignment=Enum.TextXAlignment.Left; timeLabel.Text=""
             local ampmBox=Instance.new("Frame",timeRow); ampmBox.Size=UDim2.new(0,24,0,14); ampmBox.BackgroundColor3=DarkPink; Instance.new("UICorner",ampmBox).CornerRadius=UDim.new(0,4)
             local ampmLbl=Instance.new("TextLabel",ampmBox); ampmLbl.Size=UDim2.new(1,0,1,0); ampmLbl.Text="PM"; ampmLbl.TextColor3=Color3.new(1,1,1); ampmLbl.TextSize=8; ampmLbl.Font=Enum.Font.GothamBold; ampmLbl.BackgroundTransparency=1
             local infoRow=Instance.new("Frame",clockBox); infoRow.Size=UDim2.new(1,-28,0,13); infoRow.Position=UDim2.new(0,22,0,34); infoRow.BackgroundTransparency=1
@@ -1122,113 +1131,35 @@ function Library:CreateWindow()
             end
             local execVal=MakeBadge(badgeRow,"Exec ","1"); local upVal=MakeBadge(badgeRow,"Up ","0m 0s"); local sessVal=MakeBadge(badgeRow,"Sess ","0s")
 
-            -- Hint "tap để đổi giờ"
-            local tapHint=Instance.new("TextLabel",clockBox); tapHint.Size=UDim2.new(1,-28,0,10); tapHint.Position=UDim2.new(0,22,1,-12)
-            tapHint.Text="🕐 tap to change timezone"; tapHint.Font=Enum.Font.Gotham; tapHint.TextSize=6
-            tapHint.TextColor3=Color3.fromRGB(180,130,150); tapHint.BackgroundTransparency=1; tapHint.TextXAlignment=Enum.TextXAlignment.Left
+            -- GMT: dùng đúng MakeDropdown có sẵn, ẩn head, bấm gmtBtn thì trigger
+            infoLeft.Visible = false
 
-            -- ════ TIMEZONE POPUP ════
-            local tzPopup=Instance.new("Frame",page)
-            tzPopup.Size=UDim2.new(1,-4,0,0); tzPopup.Position=UDim2.new(0,2,0,row2Y-4)
-            tzPopup.BackgroundColor3=Color3.fromRGB(255,255,255); tzPopup.BackgroundTransparency=0.05
-            tzPopup.ClipsDescendants=true; tzPopup.ZIndex=20; tzPopup.Visible=false
-            Instance.new("UICorner",tzPopup).CornerRadius=UDim.new(0,12)
-            local tzStroke=Instance.new("UIStroke",tzPopup); tzStroke.Color=DarkPink; tzStroke.Thickness=1.5
-
-            -- Header popup
-            local tzHeader=Instance.new("Frame",tzPopup); tzHeader.Size=UDim2.new(1,0,0,28); tzHeader.BackgroundColor3=DarkPink; tzHeader.BackgroundTransparency=0.1; tzHeader.ZIndex=21
-            Instance.new("UICorner",tzHeader).CornerRadius=UDim.new(0,10)
-            local tzTitle=Instance.new("TextLabel",tzHeader); tzTitle.Size=UDim2.new(1,-36,1,0); tzTitle.Position=UDim2.new(0,10,0,0)
-            tzTitle.Text="🕐  Chọn múi giờ"; tzTitle.Font=Enum.Font.GothamBold; tzTitle.TextSize=10
-            tzTitle.TextColor3=Color3.new(1,1,1); tzTitle.BackgroundTransparency=1; tzTitle.TextXAlignment=Enum.TextXAlignment.Left; tzTitle.ZIndex=22
-            local tzClose=Instance.new("TextButton",tzHeader); tzClose.Size=UDim2.new(0,22,0,22); tzClose.Position=UDim2.new(1,-26,0.5,-11)
-            tzClose.Text="✕"; tzClose.Font=Enum.Font.GothamBold; tzClose.TextSize=10; tzClose.TextColor3=Color3.new(1,1,1)
-            tzClose.BackgroundColor3=Color3.fromRGB(255,100,130); tzClose.BackgroundTransparency=0.3; tzClose.ZIndex=23
-            Instance.new("UICorner",tzClose).CornerRadius=UDim.new(1,0)
-
-            -- Grid các nút GMT
-            local tzGrid=Instance.new("Frame",tzPopup); tzGrid.Position=UDim2.new(0,6,0,34); tzGrid.BackgroundTransparency=1; tzGrid.ZIndex=21
-            tzGrid.Size=UDim2.new(1,-12,0,0); tzGrid.AutomaticSize=Enum.AutomaticSize.Y
-            local tzLayout=Instance.new("UIGridLayout",tzGrid); tzLayout.CellSize=UDim2.new(0.245,-3,0,28)
-            tzLayout.CellPadding=UDim2.new(0,3,0,3); tzLayout.SortOrder=Enum.SortOrder.LayoutOrder; tzLayout.ZIndex=21
-
-            local gmtList={"GMT+0","GMT+1","GMT+2","GMT+3","GMT+4","GMT+5","GMT+6","GMT+7","GMT+8","GMT+9","GMT+10","GMT+11","GMT+12"}
-            local tzBtns={}
-            for i,gmt in ipairs(gmtList) do
-                local tb=Instance.new("TextButton",tzGrid); tb.Size=UDim2.new(1,0,0,28)
-                tb.BackgroundColor3=Color3.fromRGB(255,255,255); tb.BackgroundTransparency=0.4
-                tb.Text=gmt; tb.Font=Enum.Font.GothamBold; tb.TextSize=9; tb.TextColor3=DarkPink; tb.ZIndex=22
-                Instance.new("UICorner",tb).CornerRadius=UDim.new(0,7)
-                local tbStroke=Instance.new("UIStroke",tb); tbStroke.Color=DarkPink; tbStroke.Thickness=1; tbStroke.Transparency=0.6
-                tzBtns[i]={btn=tb,stroke=tbStroke,gmt=gmt}
-                tb.MouseButton1Click:Connect(function()
-                    local offset=tonumber(gmt:match("GMT%+(%d+)"))
-                    if offset then
-                        gmtOffset=offset
-                        Library.SetSaved("gmtOffsetKey",gmt)
-                        -- Highlight nút được chọn
-                        for _,v in pairs(tzBtns) do
-                            TweenService:Create(v.btn,TweenInfo.new(0.15),{BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.4}):Play()
-                            TweenService:Create(v.stroke,TweenInfo.new(0.15),{Transparency=0.6}):Play()
-                        end
-                        TweenService:Create(tb,TweenInfo.new(0.2,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{BackgroundColor3=DarkPink,BackgroundTransparency=0.1}):Play()
-                        tb.TextColor3=Color3.new(1,1,1)
-                        TweenService:Create(tbStroke,TweenInfo.new(0.15),{Transparency=1}):Play()
-                        ShowToast("Đã đổi sang "..gmt,"🕐")
-                        -- Đóng popup sau 0.5s
-                        task.delay(0.5,function()
-                            TweenService:Create(tzPopup,TweenInfo.new(0.22,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{Size=UDim2.new(1,-4,0,0)}):Play()
-                            task.delay(0.22,function() tzPopup.Visible=false end)
-                        end)
-                    end
-                end)
-                tb.MouseEnter:Connect(function()
-                    TweenService:Create(tb,TweenInfo.new(0.12),{BackgroundTransparency=0.15}):Play()
-                end)
-                tb.MouseLeave:Connect(function()
-                    local curGMT="GMT+"..tostring(gmtOffset)
-                    if gmt~=curGMT then TweenService:Create(tb,TweenInfo.new(0.12),{BackgroundTransparency=0.4}):Play() end
-                end)
-            end
-
-            -- Padding dưới grid
-            local tzPad=Instance.new("Frame",tzPopup); tzPad.Size=UDim2.new(1,0,0,8); tzPad.BackgroundTransparency=1
-            tzPad.Position=UDim2.new(0,0,0,34); tzPad.ZIndex=21
-            -- (padding sẽ xuất hiện sau grid vì AutomaticSize)
-
-            local tzOpen=false
-            local function OpenTzPopup()
-                if tzOpen then return end; tzOpen=true
-                -- Highlight nút GMT hiện tại
-                local curGMT="GMT+"..tostring(gmtOffset)
-                for _,v in pairs(tzBtns) do
-                    if v.gmt==curGMT then
-                        v.btn.BackgroundColor3=DarkPink; v.btn.BackgroundTransparency=0.1; v.btn.TextColor3=Color3.new(1,1,1)
-                        TweenService:Create(v.stroke,TweenInfo.new(0.1),{Transparency=1}):Play()
-                    else
-                        v.btn.BackgroundColor3=Color3.fromRGB(255,255,255); v.btn.BackgroundTransparency=0.4; v.btn.TextColor3=DarkPink
-                        TweenService:Create(v.stroke,TweenInfo.new(0.1),{Transparency=0.6}):Play()
-                    end
-                end
-                tzPopup.Visible=true; tzPopup.Size=UDim2.new(1,-4,0,0)
-                local targetH=34+math.ceil(#gmtList/4)*31+10
-                TweenService:Create(tzPopup,TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=UDim2.new(1,-4,0,targetH)}):Play()
-            end
-            local function CloseTzPopup()
-                tzOpen=false
-                TweenService:Create(tzPopup,TweenInfo.new(0.2,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{Size=UDim2.new(1,-4,0,0)}):Play()
-                task.delay(0.2,function() tzPopup.Visible=false end)
-            end
-
-            -- Click vào clockBox để mở popup
-            local clockBtn=Instance.new("TextButton",clockBox); clockBtn.Size=UDim2.new(1,0,1,0); clockBtn.BackgroundTransparency=1; clockBtn.Text=""; clockBtn.ZIndex=10
-            clockBtn.MouseButton1Click:Connect(function()
-                PlayClickSound()
-                TweenService:Create(clockBox,TweenInfo.new(0.07),{BackgroundTransparency=0.3}):Play()
-                task.delay(0.07,function() TweenService:Create(clockBox,TweenInfo.new(0.2),{BackgroundTransparency=0.55}):Play() end)
-                if tzOpen then CloseTzPopup() else OpenTzPopup() end
+            -- Tạo dropdown ẩn head, bấm gmtBtn thì toggle
+            local gmtHead, gmtToggle = MakeDropdown(page, "GMT Offset", -999, {
+                "GMT+0","GMT+1","GMT+2","GMT+3","GMT+4","GMT+5","GMT+6",
+                "GMT+7","GMT+8","GMT+9","GMT+10","GMT+11","GMT+12"
+            }, "gmtOffsetKey", function(val)
+                local offset = tonumber(val:match("GMT%+(%d+)"))
+                if offset then gmtOffset = offset end
             end)
-            tzClose.MouseButton1Click:Connect(function() PlayClickSound(); CloseTzPopup() end)
+            gmtHead.Visible = false  -- ẩn head
+
+            -- Nút GMT trong infoRow
+            local gmtBtn = Instance.new("TextButton", infoRow)
+            gmtBtn.Size = UDim2.new(0,0,1,0); gmtBtn.AutomaticSize = Enum.AutomaticSize.X
+            gmtBtn.BackgroundColor3 = DarkPink; gmtBtn.BackgroundTransparency = 0.55
+            gmtBtn.Font = Enum.Font.GothamBold; gmtBtn.TextSize = 7
+            gmtBtn.TextColor3 = Color3.new(1,1,1); gmtBtn.ZIndex = 6
+            Instance.new("UICorner",gmtBtn).CornerRadius = UDim.new(0,4)
+            local gp = Instance.new("UIPadding",gmtBtn)
+            gp.PaddingLeft=UDim.new(0,4); gp.PaddingRight=UDim.new(0,4)
+            gmtBtn.MouseButton1Click:Connect(function()
+                -- Di chuyển head về đúng vị trí gmtBtn trước khi toggle
+                local bAbs = gmtBtn.AbsolutePosition
+                local pAbs = page.AbsolutePosition
+                gmtHead.Position = UDim2.new(0, bAbs.X - pAbs.X - 2, 0, bAbs.Y - pAbs.Y)
+                gmtToggle()
+            end)
 
             local statusBox=Instance.new("Frame",page); statusBox.Size=UDim2.new(0.20,-3,0,ROW_H); statusBox.Position=UDim2.new(0.80,0,0,row2Y); statusBox.BackgroundColor3=Color3.fromRGB(255,255,255); statusBox.BackgroundTransparency=0.55; Instance.new("UICorner",statusBox).CornerRadius=UDim.new(0,10)
             AttachCardGlow(statusBox,270,22,1.2)
@@ -1255,6 +1186,7 @@ function Library:CreateWindow()
                     ampmLbl.Text=ampm
                     dateRight.Text=days[wd]..", "..months[mo].." "..tostring(d)
                     infoLeft.Text="GMT+"..tostring(gmtOffset)
+                    gmtBtn.Text="GMT+"..tostring(gmtOffset)
                     local diff=os.time()-startTime; local sess=os.time()-sessStart
                     execVal.Text=tostring(math.floor(diff/12)%8+1)
                     upVal.Text=string.format("%dm %ds",math.floor(diff/60),diff%60)
@@ -1368,7 +1300,7 @@ function Library:CreateWindow()
             MakeSlider(page, text, yOffset, min, max, savedKey, suffix or "", callback); yOffset = yOffset + 44
         end
         function elements:AddDropdown(text, options, savedKey, callback)
-            MakeDropdown(page, text, yOffset, options, savedKey, callback); yOffset = yOffset + 32
+            local _h,_t = MakeDropdown(page, text, yOffset, options, savedKey, callback); yOffset = yOffset + 32
         end
         function elements:AddCreation()
             -- card nhỏ gọn: 4 chấm + tên tác giả nhỏ
