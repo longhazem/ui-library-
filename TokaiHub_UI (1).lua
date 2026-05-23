@@ -54,6 +54,7 @@ local ASSET_MAP = {
     unlockIcon   = { path = CACHE_DIR.."/unlock_icon.png",       url = REPO.."models/Unlock-Circle--Streamline-Freehand-1.png" },
     openSound    = { path = CACHE_DIR.."/open.mp3",              url = REPO.."audio module/open.mp3" },
     clickSound   = { path = CACHE_DIR.."/click.mp3",             url = REPO.."audio module/click.mp3" },
+    humanIcon    = { path = CACHE_DIR.."/human_icon.png",        url = REPO.."models/icons8-human-50.png" },
 }
 
 local loadedAssets = {}
@@ -1173,6 +1174,86 @@ function Library:CreateWindow()
             end)
             yOffset = yOffset + 30
         end
+        -- Button có icon human + tên username bên trái
+        function elements:AddUserButton(username, callback, toastMsg)
+            local capturedY = yOffset
+            local btn = Instance.new("Frame", page)
+            btn.Size = UDim2.new(1,-4,0,34); btn.Position = UDim2.new(0,2,0,capturedY)
+            btn.BackgroundColor3 = Color3.fromRGB(255,255,255); btn.BackgroundTransparency = 0.45
+            btn.ClipsDescendants = true
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0,9)
+            local stroke = Instance.new("UIStroke", btn); stroke.Color = DarkPink; stroke.Thickness = 1.2
+            local iconBg = Instance.new("Frame", btn)
+            iconBg.Size = UDim2.new(0,26,0,26); iconBg.Position = UDim2.new(0,4,0.5,-13)
+            iconBg.BackgroundColor3 = DarkPink; iconBg.BackgroundTransparency = 0.3
+            Instance.new("UICorner", iconBg).CornerRadius = UDim.new(1,0)
+            local icon = Instance.new("ImageLabel", iconBg)
+            icon.Size = UDim2.new(1,-4,1,-4); icon.Position = UDim2.new(0,2,0,2)
+            icon.BackgroundTransparency = 1; icon.ScaleType = Enum.ScaleType.Fit
+            icon.Image = GetAsset("humanIcon", "")
+            task.spawn(function()
+                for _ = 1, 40 do task.wait(0.3)
+                    local img = GetAsset("humanIcon", "")
+                    if img ~= "" then icon.Image = img; break end
+                end
+            end)
+            local nameLbl = Instance.new("TextLabel", btn)
+            nameLbl.Size = UDim2.new(1,-70,1,0); nameLbl.Position = UDim2.new(0,36,0,0)
+            nameLbl.Text = username; nameLbl.Font = Enum.Font.GothamBold
+            nameLbl.TextColor3 = TextColor; nameLbl.TextSize = 10
+            nameLbl.TextXAlignment = Enum.TextXAlignment.Left; nameLbl.BackgroundTransparency = 1
+            local badge = Instance.new("Frame", btn)
+            badge.Size = UDim2.new(0,32,0,18); badge.Position = UDim2.new(1,-38,0.5,-9)
+            badge.BackgroundColor3 = DarkPink; badge.BackgroundTransparency = 0.15
+            Instance.new("UICorner", badge).CornerRadius = UDim.new(0,5)
+            local badgeLbl = Instance.new("TextLabel", badge)
+            badgeLbl.Size = UDim2.new(1,0,1,0); badgeLbl.Text = "RUN"
+            badgeLbl.Font = Enum.Font.GothamBold; badgeLbl.TextSize = 8
+            badgeLbl.TextColor3 = Color3.new(1,1,1); badgeLbl.BackgroundTransparency = 1
+            local clickBtn = Instance.new("TextButton", btn)
+            clickBtn.Size = UDim2.new(1,0,1,0); clickBtn.BackgroundTransparency = 1; clickBtn.Text = ""
+            local function SpawnRipple(ix, iy)
+                local rp = Instance.new("Frame", btn)
+                local rx = ix-btn.AbsolutePosition.X; local ry = iy-btn.AbsolutePosition.Y
+                local maxR = math.sqrt(btn.AbsoluteSize.X^2+btn.AbsoluteSize.Y^2)*1.5
+                rp.Size=UDim2.new(0,0,0,0); rp.Position=UDim2.new(0,rx,0,ry); rp.AnchorPoint=Vector2.new(0.5,0.5)
+                rp.BackgroundColor3=DarkPink; rp.BackgroundTransparency=0.55; rp.ZIndex=5
+                Instance.new("UICorner",rp).CornerRadius=UDim.new(1,0)
+                TweenService:Create(rp,TweenInfo.new(0.85,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size=UDim2.new(0,maxR,0,maxR)}):Play()
+                TweenService:Create(rp,TweenInfo.new(0.85,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{BackgroundTransparency=1}):Play()
+                game:GetService("Debris"):AddItem(rp, 0.9)
+            end
+            clickBtn.MouseButton1Click:Connect(function()
+                PlayClickSound()
+                local mp = UserInputService:GetMouseLocation(); SpawnRipple(mp.X, mp.Y)
+                TweenService:Create(btn, TweenInfo.new(0.06), {Size=UDim2.new(0.92,-8,0,28), Position=UDim2.new(0.04,4,0,capturedY+3)}):Play()
+                TweenService:Create(stroke, TweenInfo.new(0.06), {Color=Color3.fromRGB(255,80,120), Thickness=2.5}):Play()
+                TweenService:Create(iconBg, TweenInfo.new(0.12,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Rotation=15}):Play()
+                task.delay(0.06, function()
+                    TweenService:Create(btn, TweenInfo.new(0.22,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
+                        {Size=UDim2.new(1,-4,0,34), Position=UDim2.new(0,2,0,capturedY)}):Play()
+                    TweenService:Create(stroke, TweenInfo.new(0.2), {Color=DarkPink, Thickness=1.2}):Play()
+                    TweenService:Create(iconBg, TweenInfo.new(0.25,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Rotation=0}):Play()
+                end)
+                if toastMsg then ShowToast(toastMsg, "\xF0\x9F\x91\xA4") end
+                if callback then callback() end
+            end)
+            clickBtn.MouseEnter:Connect(function()
+                TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundTransparency=0.25}):Play()
+                TweenService:Create(stroke, TweenInfo.new(0.15), {Thickness=2}):Play()
+                TweenService:Create(badge, TweenInfo.new(0.15), {BackgroundTransparency=0}):Play()
+            end)
+            clickBtn.MouseLeave:Connect(function()
+                TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundTransparency=0.45}):Play()
+                TweenService:Create(stroke, TweenInfo.new(0.15), {Thickness=1.2}):Play()
+                TweenService:Create(badge, TweenInfo.new(0.15), {BackgroundTransparency=0.15}):Play()
+            end)
+            btn.Position = UDim2.new(0.3,2,0,capturedY); btn.BackgroundTransparency = 1
+            task.defer(function()
+                TweenService:Create(btn, TweenInfo.new(0.28,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Position=UDim2.new(0,2,0,capturedY), BackgroundTransparency=0.45}):Play()
+            end)
+            yOffset = yOffset + 38
+        end
         function elements:AddSlider(text, min, max, savedKey, suffix, callback)
             MakeSlider(page, text, yOffset, min, max, savedKey, suffix or "", callback); yOffset = yOffset + 44
         end
@@ -1261,12 +1342,12 @@ mainTab:AddButton("▶ Chạy Test", function() print("[Button] Đã nhấn!") e
 
 local uselessTab = win:CreateTab("Useless", "7743875630")
 uselessTab:AddSection("Random Scripts")
-uselessTab:AddButton("👤 wklbox", function()
+uselessTab:AddUserButton("wklbox", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/longhazem/TOKAIHUB/refs/heads/main/Test"))()
-end, "Đang chạy script: wklbox", "👤")
-uselessTab:AddButton("👤 dolboeb228_negr", function()
+end, "Đang chạy script: wklbox")
+uselessTab:AddUserButton("dolboeb228_negr", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/longhazem/TOKAIHUB/refs/heads/main/Audio"))()
-end, "Đang chạy script: dolboeb228_negr", "👤")
+end, "Đang chạy script: dolboeb228_negr")
 
 -- ════ SETTINGS TAB ════
 local settingsTab = win:CreateTab("Settings", "IMG:tabSettings")
