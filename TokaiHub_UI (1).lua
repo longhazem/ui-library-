@@ -55,6 +55,7 @@ local ASSET_MAP = {
     openSound    = { path = CACHE_DIR.."/open.mp3",              url = REPO.."audio module/open.mp3" },
     clickSound   = { path = CACHE_DIR.."/click.mp3",             url = REPO.."audio module/click.mp3" },
     humanIcon    = { path = CACHE_DIR.."/human_icon.png",        url = REPO.."models/icons8-human-50.png" },
+    gunIcon      = { path = CACHE_DIR.."/gun_icon.png",           url = REPO.."models/icons8-gun-50.png" },
 }
 
 local loadedAssets = {}
@@ -1274,6 +1275,46 @@ function Library:CreateWindow()
             local names=Instance.new("TextLabel",row); names.Size=UDim2.new(0,0,1,0); names.AutomaticSize=Enum.AutomaticSize.X; names.Text="longtokai · zentakt"; names.Font=Enum.Font.Gotham; names.TextColor3=Color3.fromRGB(160,100,120); names.TextSize=8; names.BackgroundTransparency=1
             yOffset = yOffset + 30
         end
+        -- Section bar có icon ảnh bên trái
+        function elements:AddSectionWithIcon(text, assetKey)
+            local capturedY = yOffset
+            local bar = Instance.new("Frame", page)
+            bar.Size = UDim2.new(1,-4,0,22); bar.Position = UDim2.new(0,2,0,capturedY)
+            bar.BackgroundColor3 = Color3.fromRGB(255,255,255); bar.BackgroundTransparency = 0.6
+            Instance.new("UICorner", bar).CornerRadius = UDim.new(0,6)
+            local barStroke = Instance.new("UIStroke", bar); barStroke.Color = DarkPink; barStroke.Thickness = 1; barStroke.Transparency = 0.5
+            -- Icon ảnh
+            local iconImg = Instance.new("ImageLabel", bar)
+            iconImg.Size = UDim2.new(0,16,0,16); iconImg.Position = UDim2.new(0,4,0.5,-8)
+            iconImg.BackgroundTransparency = 1; iconImg.ScaleType = Enum.ScaleType.Fit
+            iconImg.Image = GetAsset(assetKey, "")
+            task.spawn(function()
+                for _ = 1, 40 do task.wait(0.3)
+                    local img = GetAsset(assetKey, "")
+                    if img ~= "" then iconImg.Image = img; break end
+                end
+            end)
+            -- Text
+            local lbl = Instance.new("TextLabel", bar)
+            lbl.Size = UDim2.new(1,-26,1,0); lbl.Position = UDim2.new(0,24,0,0)
+            lbl.Text = text; lbl.Font = Enum.Font.GothamBold; lbl.TextColor3 = DarkPink; lbl.TextSize = 9
+            lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.BackgroundTransparency = 1
+            -- Slide-in + shimmer
+            bar.Position = UDim2.new(-0.2,0,0,capturedY); bar.BackgroundTransparency = 1; lbl.TextTransparency = 1
+            task.defer(function()
+                TweenService:Create(bar, TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Position=UDim2.new(0,2,0,capturedY), BackgroundTransparency=0.6}):Play()
+                TweenService:Create(lbl, TweenInfo.new(0.3,Enum.EasingStyle.Quad,Enum.EasingDirection.Out), {TextTransparency=0}):Play()
+            end)
+            coroutine.wrap(function()
+                local cols = {DarkPink, Color3.fromRGB(200,120,200), Color3.fromRGB(255,140,170), DarkPink}
+                local i = 1
+                while lbl and lbl.Parent do
+                    task.wait(1.2); i = (i % #cols) + 1
+                    TweenService:Create(lbl, TweenInfo.new(0.6,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut), {TextColor3=cols[i]}):Play()
+                end
+            end)()
+            yOffset = yOffset + 26
+        end
         function elements:AddSection(text)
             local capturedY = yOffset  -- capture trước khi yOffset bị cộng
             local lbl=Instance.new("TextLabel",page); lbl.Size=UDim2.new(1,-4,0,18); lbl.Position=UDim2.new(0,2,0,capturedY); lbl.Text="── "..text.." ──"; lbl.Font=Enum.Font.GothamBold; lbl.TextColor3=DarkPink; lbl.TextSize=9; lbl.BackgroundTransparency=1
@@ -1341,7 +1382,7 @@ mainTab:AddSection("🎮 Button Test")
 mainTab:AddButton("▶ Chạy Test", function() print("[Button] Đã nhấn!") end, "Test thành công!", "✅")
 
 local uselessTab = win:CreateTab("Useless", "7743875630")
-uselessTab:AddSection("Random Scripts")
+uselessTab:AddSectionWithIcon("Random Scripts", "gunIcon")
 uselessTab:AddUserButton("wklbox", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/longhazem/TOKAIHUB/refs/heads/main/Test"))()
 end, "Đang chạy script: wklbox")
