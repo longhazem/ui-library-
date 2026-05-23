@@ -1154,20 +1154,22 @@ function Library:CreateWindow()
         end
 
         function elements:AddButton(text, callback, toastMsg, toastIcon)
-            local btn = MakeAnimButton(page, text, yOffset, callback, toastMsg, toastIcon)
+            local capturedY = yOffset  -- capture trước khi yOffset bị cộng
+            local btn = MakeAnimButton(page, text, capturedY, callback, toastMsg, toastIcon)
             -- Slide-in từ phải khi thêm vào
-            btn.Position = UDim2.new(0.3,2,0,yOffset); btn.BackgroundTransparency = 1
+            btn.Position = UDim2.new(0.3,2,0,capturedY); btn.BackgroundTransparency = 1
             task.defer(function()
-                TweenService:Create(btn, TweenInfo.new(0.28,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Position=UDim2.new(0,2,0,yOffset), BackgroundTransparency=0.45}):Play()
+                TweenService:Create(btn, TweenInfo.new(0.28,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Position=UDim2.new(0,2,0,capturedY), BackgroundTransparency=0.45}):Play()
             end)
             yOffset = yOffset + 32
         end
         function elements:AddToggle(text, savedKey, callback)
-            local tog = MakeToggle(page, text, yOffset, savedKey, callback)
+            local capturedY = yOffset  -- capture trước khi yOffset bị cộng
+            local tog = MakeToggle(page, text, capturedY, savedKey, callback)
             -- Slide-in từ phải
-            tog.Position = UDim2.new(0.3,2,0,yOffset); tog.BackgroundTransparency = 1
+            tog.Position = UDim2.new(0.3,2,0,capturedY); tog.BackgroundTransparency = 1
             task.defer(function()
-                TweenService:Create(tog, TweenInfo.new(0.28,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Position=UDim2.new(0,2,0,yOffset), BackgroundTransparency=0.45}):Play()
+                TweenService:Create(tog, TweenInfo.new(0.28,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Position=UDim2.new(0,2,0,capturedY), BackgroundTransparency=0.45}):Play()
             end)
             yOffset = yOffset + 30
         end
@@ -1192,12 +1194,13 @@ function Library:CreateWindow()
             yOffset = yOffset + 30
         end
         function elements:AddSection(text)
-            local lbl=Instance.new("TextLabel",page); lbl.Size=UDim2.new(1,-4,0,18); lbl.Position=UDim2.new(0,2,0,yOffset); lbl.Text="── "..text.." ──"; lbl.Font=Enum.Font.GothamBold; lbl.TextColor3=DarkPink; lbl.TextSize=9; lbl.BackgroundTransparency=1
+            local capturedY = yOffset  -- capture trước khi yOffset bị cộng
+            local lbl=Instance.new("TextLabel",page); lbl.Size=UDim2.new(1,-4,0,18); lbl.Position=UDim2.new(0,2,0,capturedY); lbl.Text="── "..text.." ──"; lbl.Font=Enum.Font.GothamBold; lbl.TextColor3=DarkPink; lbl.TextSize=9; lbl.BackgroundTransparency=1
             -- Slide-in từ trái khi xuất hiện
-            lbl.Position = UDim2.new(-0.2,0,0,yOffset)
+            lbl.Position = UDim2.new(-0.2,0,0,capturedY)
             lbl.TextTransparency = 1
             task.defer(function()
-                TweenService:Create(lbl, TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Position=UDim2.new(0,2,0,yOffset), TextTransparency=0}):Play()
+                TweenService:Create(lbl, TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Position=UDim2.new(0,2,0,capturedY), TextTransparency=0}):Play()
             end)
             -- Shimmer màu nhịp nhàng
             coroutine.wrap(function()
