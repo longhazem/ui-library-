@@ -1316,25 +1316,46 @@ function Library:CreateWindow()
             yOffset = yOffset + 26
         end
         function elements:AddSection(text)
-            local capturedY = yOffset  -- capture trước khi yOffset bị cộng
-            local lbl=Instance.new("TextLabel",page); lbl.Size=UDim2.new(1,-4,0,18); lbl.Position=UDim2.new(0,2,0,capturedY); lbl.Text="── "..text.." ──"; lbl.Font=Enum.Font.GothamBold; lbl.TextColor3=DarkPink; lbl.TextSize=9; lbl.BackgroundTransparency=1
-            -- Slide-in từ trái khi xuất hiện
-            lbl.Position = UDim2.new(-0.2,0,0,capturedY)
-            lbl.TextTransparency = 1
+            local capturedY = yOffset
+            -- Bar có icon Tokai bên trái
+            local bar = Instance.new("Frame", page)
+            bar.Size = UDim2.new(1,-4,0,22); bar.Position = UDim2.new(0,2,0,capturedY)
+            bar.BackgroundColor3 = Color3.fromRGB(255,255,255); bar.BackgroundTransparency = 0.6
+            Instance.new("UICorner", bar).CornerRadius = UDim.new(0,6)
+            local barStroke = Instance.new("UIStroke", bar)
+            barStroke.Color = DarkPink; barStroke.Thickness = 1; barStroke.Transparency = 0.5
+            -- Icon Tokai logo
+            local iconImg = Instance.new("ImageLabel", bar)
+            iconImg.Size = UDim2.new(0,16,0,16); iconImg.Position = UDim2.new(0,4,0.5,-8)
+            iconImg.BackgroundTransparency = 1; iconImg.ScaleType = Enum.ScaleType.Fit
+            iconImg.Image = GetAsset("homeIcon", "")
+            task.spawn(function()
+                for _ = 1, 40 do task.wait(0.3)
+                    local img = GetAsset("homeIcon", "")
+                    if img ~= "" then iconImg.Image = img; break end
+                end
+            end)
+            -- Text
+            local lbl = Instance.new("TextLabel", bar)
+            lbl.Size = UDim2.new(1,-26,1,0); lbl.Position = UDim2.new(0,24,0,0)
+            lbl.Text = text; lbl.Font = Enum.Font.GothamBold; lbl.TextColor3 = DarkPink; lbl.TextSize = 9
+            lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.BackgroundTransparency = 1
+            -- Slide-in từ trái
+            bar.Position = UDim2.new(-0.2,0,0,capturedY); bar.BackgroundTransparency = 1; lbl.TextTransparency = 1
             task.defer(function()
-                TweenService:Create(lbl, TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Position=UDim2.new(0,2,0,capturedY), TextTransparency=0}):Play()
+                TweenService:Create(bar, TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Position=UDim2.new(0,2,0,capturedY), BackgroundTransparency=0.6}):Play()
+                TweenService:Create(lbl, TweenInfo.new(0.3,Enum.EasingStyle.Quad,Enum.EasingDirection.Out), {TextTransparency=0}):Play()
             end)
             -- Shimmer màu nhịp nhàng
             coroutine.wrap(function()
                 local cols = {DarkPink, Color3.fromRGB(200,120,200), Color3.fromRGB(255,140,170), DarkPink}
                 local i = 1
                 while lbl and lbl.Parent do
-                    task.wait(1.2)
-                    i = (i % #cols) + 1
+                    task.wait(1.2); i = (i % #cols) + 1
                     TweenService:Create(lbl, TweenInfo.new(0.6,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut), {TextColor3=cols[i]}):Play()
                 end
             end)()
-            yOffset = yOffset + 22
+            yOffset = yOffset + 26
         end
 
         if name == "Home" then
