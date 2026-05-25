@@ -5,6 +5,7 @@
 -- ╚══════════════════════════════════════════════════╝
 
 local UserInputService = game:GetService("UserInputService")
+
 local TweenService     = game:GetService("TweenService")
 local SoundService     = game:GetService("SoundService")
 local Players          = game:GetService("Players")
@@ -56,6 +57,7 @@ local ASSET_MAP = {
     clickSound   = { path = CACHE_DIR.."/click.mp3",             url = REPO.."audio module/click.mp3" },
     humanIcon    = { path = CACHE_DIR.."/human_icon.png",        url = REPO.."models/icons8-human-50.png" },
     gunIcon      = { path = CACHE_DIR.."/gun_icon.png",           url = REPO.."models/icons8-gun-50.png" },
+    secretSound  = { path = CACHE_DIR.."/secret.mp3",             url = REPO.."audio module/YTDown_YouTube_KRUX-Illusion-of-Inflict-slowed_Media_u_HbqssDLqI_007_128k.mp3" },
 }
 
 local loadedAssets = {}
@@ -1430,6 +1432,186 @@ local homeTab = win:CreateTab("Home", "IMG:tabHome")
 homeTab:AddDashboard()
 homeTab:AddCreation()
 
+-- ════ SECRET BUTTON ════
+local secretPlaying = false
+homeTab:AddButton("???", function()
+    if secretPlaying then return end
+
+    local Players  = game:GetService("Players")
+    local lp       = Players.LocalPlayer
+    local CoreGui  = game:GetService("CoreGui")
+    local Pink     = Color3.fromRGB(235,110,140)
+
+    -- ══ PASSWORD UI — dùng GetGuiParent + IgnoreGuiInset như overlay gốc ══
+    local pGui = Instance.new("ScreenGui")
+    pGui.Name = "SecretPass"; pGui.DisplayOrder = 999
+    pGui.ResetOnSpawn = false; pGui.IgnoreGuiInset = true
+    pGui.Parent = GetGuiParent()
+
+    local pbg = Instance.new("Frame", pGui)
+    pbg.Size = UDim2.new(1,0,1,0); pbg.BackgroundColor3 = Color3.new(0,0,0)
+    pbg.BackgroundTransparency = 0.45; pbg.ZIndex = 1
+
+    local box = Instance.new("Frame", pGui)
+    box.Size = UDim2.new(0,280,0,150); box.Position = UDim2.new(0.5,-140,0.5,-75)
+    box.BackgroundColor3 = Color3.fromRGB(18,6,14); box.BackgroundTransparency = 0; box.ZIndex = 2
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0,14)
+    local bst = Instance.new("UIStroke", box); bst.Color = Pink; bst.Thickness = 1.8
+
+    local title = Instance.new("TextLabel", box)
+    title.Size = UDim2.new(1,0,0,38); title.BackgroundTransparency = 1
+    title.Text = "⚠️  Enter Password"; title.Font = Enum.Font.GothamBold
+    title.TextSize = 13; title.TextColor3 = Pink; title.ZIndex = 3
+
+    local inputBox = Instance.new("TextBox", box)
+    inputBox.Size = UDim2.new(1,-20,0,36); inputBox.Position = UDim2.new(0,10,0,42)
+    inputBox.BackgroundColor3 = Color3.fromRGB(45,14,28); inputBox.BackgroundTransparency = 0
+    inputBox.Font = Enum.Font.Gotham; inputBox.TextSize = 12
+    inputBox.TextColor3 = Color3.new(1,1,1); inputBox.PlaceholderText = "Enter password..."
+    inputBox.PlaceholderColor3 = Color3.fromRGB(130,80,100)
+    inputBox.Text = ""; inputBox.ClearTextOnFocus = true; inputBox.ZIndex = 3
+    Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0,8)
+
+    local confirmBtn = Instance.new("TextButton", box)
+    confirmBtn.Size = UDim2.new(0,118,0,30); confirmBtn.Position = UDim2.new(0,10,0,92)
+    confirmBtn.BackgroundColor3 = Pink; confirmBtn.BackgroundTransparency = 0.1
+    confirmBtn.Text = "Confirm"; confirmBtn.Font = Enum.Font.GothamBold
+    confirmBtn.TextSize = 12; confirmBtn.TextColor3 = Color3.new(1,1,1); confirmBtn.ZIndex = 3
+    Instance.new("UICorner", confirmBtn).CornerRadius = UDim.new(0,8)
+
+    local cancelBtn = Instance.new("TextButton", box)
+    cancelBtn.Size = UDim2.new(0,118,0,30); cancelBtn.Position = UDim2.new(1,-128,0,92)
+    cancelBtn.BackgroundColor3 = Color3.fromRGB(70,25,40); cancelBtn.BackgroundTransparency = 0.1
+    cancelBtn.Text = "Cancel"; cancelBtn.Font = Enum.Font.GothamBold
+    cancelBtn.TextSize = 12; cancelBtn.TextColor3 = Color3.new(1,1,1); cancelBtn.ZIndex = 3
+    Instance.new("UICorner", cancelBtn).CornerRadius = UDim.new(0,8)
+
+    cancelBtn.MouseButton1Click:Connect(function()
+        pGui:Destroy()
+    end)
+
+    confirmBtn.MouseButton1Click:Connect(function()
+        if inputBox.Text ~= "longtokaiaishiteru" then
+            title.Text = "❌  Wrong Password"
+            title.TextColor3 = Color3.fromRGB(255,70,70)
+            inputBox.Text = ""
+            task.delay(1.5, function()
+                if title and title.Parent then
+                    title.Text = "⚠️  Enter Password"
+                    title.TextColor3 = Pink
+                end
+            end)
+            return
+        end
+
+        -- Xóa password UI ngay lập tức
+        pGui:Destroy()
+        secretPlaying = true
+
+        -- ══ DARK OVERLAY — y chang overlay gốc nhưng đen hoàn toàn ══
+        local darkGui = Instance.new("ScreenGui")
+        darkGui.Name = "SecretDark"; darkGui.DisplayOrder = 998
+        darkGui.ResetOnSpawn = false; darkGui.IgnoreGuiInset = true
+        darkGui.Parent = GetGuiParent()
+
+        local dark = Instance.new("Frame", darkGui)
+        dark.Size = UDim2.new(1,0,1,0)
+        dark.BackgroundColor3 = Color3.fromRGB(0,0,0)
+        dark.BackgroundTransparency = 1; dark.ZIndex = 1
+        -- Fade đen hoàn toàn
+        TweenService:Create(dark, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {BackgroundTransparency=0}):Play()
+
+        -- Label chữ
+        local msgLbl = Instance.new("TextLabel", darkGui)
+        msgLbl.Size = UDim2.new(0.85,0,0,70)
+        msgLbl.Position = UDim2.new(0.075,0,0.42,0)
+        msgLbl.AnchorPoint = Vector2.new(0,0)
+        msgLbl.BackgroundTransparency = 1
+        msgLbl.TextColor3 = Pink
+        msgLbl.Font = Enum.Font.GothamBold
+        msgLbl.TextSize = 22
+        msgLbl.TextWrapped = true
+        msgLbl.TextTransparency = 1
+        msgLbl.Text = ""; msgLbl.ZIndex = 2
+
+        -- Phát nhạc
+        local sound = Instance.new("Sound", workspace)
+        sound.Volume = 1
+
+        task.spawn(function()
+            -- Load asset
+            local s = GetAsset("secretSound","")
+            for _ = 1,60 do
+                if s ~= "" then break end
+                task.wait(0.5)
+                s = GetAsset("secretSound","")
+            end
+            sound.SoundId = s
+            sound:Play()
+
+            -- Đợi load xong để biết TimeLength
+            task.wait(1)
+            local totalLen = math.max(sound.TimeLength, 30)
+            local loopUntil = totalLen - 14
+
+            -- Chuỗi loop
+            local msgs = {
+                {t="Stand still.",                                     s=22, dur=3.5},
+                {t="Hold.",                                            s=22, dur=3},
+                {t="Move.",                                            s=22, dur=3},
+                {t="Don't move.",                                      s=22, dur=3.5},
+                {t="Good job.",                                        s=22, dur=3},
+                {t="Please stand still and don't move anything.",      s=16, dur=4.5},
+                {t="Don't move.",                                      s=22, dur=3.5},
+                {t="If you move, it will get worse. Don't move.",      s=16, dur=4.5},
+                {t="Don't move.",                                      s=22, dur=3.5},
+                {t="LongTokai is coming.",                             s=20, dur=4},
+                {t="Don't move.",                                      s=22, dur=3.5},
+            }
+
+            local startTick = tick()
+            local idx = 1
+
+            while sound.IsPlaying and (tick()-startTick) < loopUntil do
+                local m = msgs[idx]
+                if msgLbl and msgLbl.Parent then
+                    msgLbl.TextSize = m.s
+                    msgLbl.Text = m.t
+                    msgLbl.TextTransparency = 1
+                    TweenService:Create(msgLbl, TweenInfo.new(0.5,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
+                        {TextTransparency=0}):Play()
+                    task.wait(m.dur - 0.6)
+                    TweenService:Create(msgLbl, TweenInfo.new(0.5,Enum.EasingStyle.Quad,Enum.EasingDirection.In),
+                        {TextTransparency=1}):Play()
+                    task.wait(0.6)
+                else break end
+                idx = (idx % #msgs) + 1
+            end
+
+            -- Ending
+            if msgLbl and msgLbl.Parent then
+                msgLbl.TextSize = 20
+                msgLbl.Text = "You will depart in peace."
+                msgLbl.TextTransparency = 1
+                TweenService:Create(msgLbl, TweenInfo.new(1), {TextTransparency=0}):Play()
+                task.wait(5)
+                TweenService:Create(msgLbl, TweenInfo.new(0.5), {TextTransparency=1}):Play()
+                task.wait(1)
+                msgLbl.TextSize = 22
+                msgLbl.Text = "Don't move."
+                msgLbl.TextTransparency = 1
+                TweenService:Create(msgLbl, TweenInfo.new(0.6), {TextTransparency=0}):Play()
+                task.wait(5)
+            end
+
+            -- Kick ngay
+            lp:Kick("Never touch it if you're too curious. If you re-enter my script, you will be banned.")
+        end)
+    end)
+end, nil, nil)
+
+local mainTab
 local mainTab = win:CreateTab("Main", "IMG:tabMain")
 mainTab:AddSection("🔘 Toggle Test")
 mainTab:AddToggle("Toggle A", "testToggleA", function(val) print("[Toggle A]", val) end)
