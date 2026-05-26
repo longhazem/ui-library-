@@ -1143,6 +1143,131 @@ function Library:CreateWindow()
             local pfp=Instance.new("ImageLabel",userBox); pfp.Size=UDim2.new(0,52,0,52); pfp.Position=UDim2.new(0,24,0.5,-26)
             pfp.Image=Players:GetUserThumbnailAsync(Players.LocalPlayer.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size100x100)
             pfp.BackgroundTransparency=1; Instance.new("UICorner",pfp).CornerRadius=UDim.new(1,0)
+
+            -- ════ AVATAR VIEWER — full body image ════
+            local avatarOpen = false
+            local avatarPanel = Instance.new("Frame", main)
+            avatarPanel.Size = UDim2.new(0,130,0,200)
+            avatarPanel.Position = UDim2.new(0,-145,0.5,-100)
+            avatarPanel.BackgroundColor3 = Color3.fromRGB(255,240,246)
+            avatarPanel.BackgroundTransparency = 0.08
+            avatarPanel.Visible = false; avatarPanel.ZIndex = 50
+            Instance.new("UICorner",avatarPanel).CornerRadius=UDim.new(0,14)
+            local apStroke=Instance.new("UIStroke",avatarPanel)
+            apStroke.Color=DarkPink; apStroke.Thickness=1.5
+
+            -- Header
+            local apHeader=Instance.new("Frame",avatarPanel)
+            apHeader.Size=UDim2.new(1,0,0,26); apHeader.BackgroundColor3=DarkPink
+            apHeader.BackgroundTransparency=0.2; apHeader.ZIndex=51
+            Instance.new("UICorner",apHeader).CornerRadius=UDim.new(0,12)
+            local apTitle=Instance.new("TextLabel",apHeader)
+            apTitle.Size=UDim2.new(1,-28,1,0); apTitle.Position=UDim2.new(0,8,0,0)
+            apTitle.Text="👤 "..Players.LocalPlayer.DisplayName
+            apTitle.Font=Enum.Font.GothamBold; apTitle.TextSize=8
+            apTitle.TextColor3=Color3.new(1,1,1); apTitle.BackgroundTransparency=1
+            apTitle.ZIndex=52; apTitle.TextXAlignment=Enum.TextXAlignment.Left
+            local apClose=Instance.new("TextButton",apHeader)
+            apClose.Size=UDim2.new(0,20,0,20); apClose.Position=UDim2.new(1,-23,0.5,-10)
+            apClose.Text="✕"; apClose.Font=Enum.Font.GothamBold; apClose.TextSize=9
+            apClose.TextColor3=Color3.new(1,1,1); apClose.BackgroundTransparency=1; apClose.ZIndex=53
+
+            -- ViewportFrame xoay nhân vật
+            local vp=Instance.new("ViewportFrame",avatarPanel)
+            vp.Size=UDim2.new(1,-8,1,-56); vp.Position=UDim2.new(0,4,0,30)
+            vp.BackgroundColor3=Color3.fromRGB(235,210,225)
+            vp.BackgroundTransparency=0.3; vp.ZIndex=51
+            vp.Ambient=Color3.new(1,1,1); vp.LightColor=Color3.new(1,1,1)
+            vp.LightDirection=Vector3.new(-1,-2,-1)
+            Instance.new("UICorner",vp).CornerRadius=UDim.new(0,10)
+
+            local vpCam=Instance.new("Camera"); vpCam.Parent=vp; vp.CurrentCamera=vpCam
+
+            -- Hint xoay
+            local hintLbl=Instance.new("TextLabel",avatarPanel)
+            hintLbl.Size=UDim2.new(1,0,0,12); hintLbl.Position=UDim2.new(0,0,1,-18)
+            hintLbl.Text="drag to rotate"; hintLbl.Font=Enum.Font.Gotham
+            hintLbl.TextSize=7; hintLbl.TextColor3=DarkPink
+            hintLbl.BackgroundTransparency=1; hintLbl.ZIndex=52
+
+            local charClone=nil
+            local camAngleY=0; local camAngleX=10
+            local charPos=Vector3.new(0,0,0)
+
+            local function UpdateCam()
+                local center=charPos+Vector3.new(0,1,0)
+                local rad1=math.rad(camAngleY); local rad2=math.rad(camAngleX)
+                local x=math.sin(rad1)*math.cos(rad2)*5
+                local y=math.sin(rad2)*5
+                local z=math.cos(rad1)*math.cos(rad2)*5
+                vpCam.CFrame=CFrame.new(center+Vector3.new(x,y,z),center)
+            end
+
+            local function LoadChar()
+                if charClone then charClone:Destroy(); charClone=nil end
+                local char=Players.LocalPlayer.Character; if not char then return end
+                charClone=char:Clone()
+                for _,v in pairs(charClone:GetDescendants()) do
+                    if v:IsA("Script") or v:IsA("LocalScript") or v:IsA("Animator") then v:Destroy() end
+                end
+                for _,p in pairs(charClone:GetDescendants()) do
+                    if p:IsA("BasePart") then p.Anchored=true; p.CanCollide=false end
+                end
+                -- Lấy vị trí thật của nhân vật trong world
+                local hrp=charClone:FindFirstChild("HumanoidRootPart")
+                charPos=hrp and hrp.Position or Vector3.new(0,0,0)
+                -- Parent thẳng vào vp KHÔNG move gì
+                charClone.Parent=vp
+                UpdateCam()
+            end
+
+            -- Drag để xoay camera
+            local dragging=false; local lastInput=nil
+            vp.InputBegan:Connect(function(inp)
+                if inp.UserInputType==Enum.UserInputType.Touch
+                or inp.UserInputType==Enum.UserInputType.MouseButton1 then
+                    dragging=true; lastInput=inp.Position
+                end
+            end)
+            UserInputService.InputEnded:Connect(function(inp)
+                if inp.UserInputType==Enum.UserInputType.Touch
+                or inp.UserInputType==Enum.UserInputType.MouseButton1 then
+                    dragging=false
+                end
+            end)
+            UserInputService.InputChanged:Connect(function(inp)
+                if not dragging then return end
+                if inp.UserInputType==Enum.UserInputType.MouseMovement
+                or inp.UserInputType==Enum.UserInputType.Touch then
+                    local delta=inp.Delta
+                    camAngleY=camAngleY-delta.X*0.6
+                    camAngleX=math.clamp(camAngleX+delta.Y*0.3,-20,40)
+                    UpdateCam()
+                end
+            end)
+
+            local function OpenAvatarPanel()
+                avatarOpen=true
+                avatarPanel.Visible=true
+                TweenService:Create(avatarPanel,TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
+                    {Position=UDim2.new(0,-142,0.5,-100)}):Play()
+                LoadChar()
+            end
+            local function CloseAvatarPanel()
+                avatarOpen=false
+                TweenService:Create(avatarPanel,TweenInfo.new(0.2,Enum.EasingStyle.Quad,Enum.EasingDirection.In),
+                    {Position=UDim2.new(0,-175,0.5,-100)}):Play()
+                task.delay(0.2,function() avatarPanel.Visible=false end)
+            end
+
+            local pfpBtn=Instance.new("TextButton",userBox)
+            pfpBtn.Size=UDim2.new(0,52,0,52); pfpBtn.Position=UDim2.new(0,24,0.5,-26)
+            pfpBtn.BackgroundTransparency=1; pfpBtn.Text=""; pfpBtn.ZIndex=5
+            pfpBtn.MouseButton1Click:Connect(function()
+                PlayClickSound()
+                if avatarOpen then CloseAvatarPanel() else OpenAvatarPanel() end
+            end)
+            apClose.MouseButton1Click:Connect(function() PlayClickSound(); CloseAvatarPanel() end)
             local g1=Instance.new("TextLabel",userBox); g1.Size=UDim2.new(0.52,0,0.4,0); g1.Position=UDim2.new(0,83,0.08,0); g1.Text="The lanterns light your way~,"; g1.Font=Enum.Font.GothamBold; g1.TextColor3=TextColor; g1.TextSize=8; g1.TextXAlignment=Enum.TextXAlignment.Left; g1.TextWrapped=true; g1.BackgroundTransparency=1
             local g2=Instance.new("TextLabel",userBox); g2.Size=UDim2.new(0.52,0,0.28,0); g2.Position=UDim2.new(0,83,0.44,0); g2.Text=Players.LocalPlayer.DisplayName; g2.Font=Enum.Font.GothamBold; g2.TextColor3=DarkPink; g2.TextSize=13; g2.TextXAlignment=Enum.TextXAlignment.Left; g2.BackgroundTransparency=1
             local g3=Instance.new("TextLabel",userBox); g3.Size=UDim2.new(0.52,0,0.22,0); g3.Position=UDim2.new(0,83,0.74,0); g3.Text="Welcome to TokaiHub"; g3.Font=Enum.Font.Gotham; g3.TextColor3=Color3.fromRGB(160,100,120); g3.TextSize=7; g3.TextXAlignment=Enum.TextXAlignment.Left; g3.BackgroundTransparency=1
