@@ -58,6 +58,10 @@ local ASSET_MAP = {
     humanIcon    = { path = CACHE_DIR.."/human_icon.png",        url = REPO.."models/icons8-human-50.png" },
     gunIcon      = { path = CACHE_DIR.."/gun_icon.png",           url = REPO.."models/icons8-gun-50.png" },
     secretSound  = { path = CACHE_DIR.."/secret.mp3",             url = REPO.."audio module/YTDown_YouTube_KRUX-Illusion-of-Inflict-slowed_Media_u_HbqssDLqI_007_128k.mp3" },
+    click1       = { path = CACHE_DIR.."/click1.wav",             url = REPO.."audio module/mixkit-cool-interface-click-tone-2568.wav" },
+    click2       = { path = CACHE_DIR.."/click2.wav",             url = REPO.."audio module/mixkit-hard-typewriter-click-1119.wav" },
+    click3       = { path = CACHE_DIR.."/click3.wav",             url = REPO.."audio module/mixkit-typewriter-soft-click-1125.wav" },
+    bellSound    = { path = CACHE_DIR.."/bell.mp3",               url = REPO.."audio module/old-church-bell-meme.mp3" },
 }
 
 local loadedAssets = {}
@@ -219,9 +223,12 @@ CleanupOldUI()
 
 -- ═══════════════ CLICK SOUND ═══════════════
 -- Dùng GetAsset() → tự dùng file GitHub nếu đã cache, không thì fallback rbxassetid
+local clickKeys = {"click1","click2","click3"}
 local function PlayClickSound()
+    local key = clickKeys[math.random(1,#clickKeys)]
     local s = Instance.new("Sound")
-    s.SoundId = GetAsset("clickSound", "rbxassetid://126347354635406")
+    local asset = GetAsset(key,"")
+    s.SoundId = asset ~= "" and asset or GetAsset("clickSound","rbxassetid://126347354635406")
     s.Volume = 0.6
     s.Parent = SoundService; s:Play()
     game:GetService("Debris"):AddItem(s, 2)
@@ -408,7 +415,7 @@ function Library:CreateWindow()
     -- ════ TOOLBAR ════
     local toolbar = Instance.new("Frame", main)
     toolbar.Size = UDim2.new(0,30,0,95)
-    toolbar.Position = UDim2.new(1,48,0.5,-47)
+    toolbar.Position = UDim2.new(1,62,0.5,-47)
     toolbar.BackgroundColor3 = Color3.new(1,1,1)
     toolbar.BackgroundTransparency = 0.5
     Instance.new("UICorner", toolbar).CornerRadius = UDim.new(0,8)
@@ -448,13 +455,12 @@ function Library:CreateWindow()
     end
 
     local closeBtn = MakeToolImgBtn(ICONS.close,   Color3.fromRGB(235,80,80))
-    local lockBtn  = MakeToolImgBtn(ICONS.lock,    Color3.fromRGB(80,200,80))
+    local lockBtn  = MakeToolImgBtn(ICONS.unlock,  Color3.fromRGB(80,200,80))
     local keyBtn   = MakeToolImgBtn(ICONS.keybind, DarkPink)
 
-    -- Async cập nhật icon lock/unlock từ GitHub khi sẵn
-    AsyncUpdateIcon(lockBtn, "lockIcon",   ResolveImage("77585429015889"))
+    -- Async cập nhật icon — ban đầu là unlockIcon vì isLocked=false
+    AsyncUpdateIcon(lockBtn, "unlockIcon", ResolveImage("122613499308444"))
     AsyncUpdateIcon(closeBtn, "tabClose",  ResolveImage("7072725342"))
-    -- unlock icon sẽ được cập nhật khi toggle
 
     local overlayGui = Instance.new("ScreenGui", GetGuiParent())
     overlayGui.Name = "TOKAIHUB_OVERLAY"
@@ -474,11 +480,16 @@ function Library:CreateWindow()
         end
         if main.Visible then
             if activeDropdown then activeDropdown(true) end
+            -- Lưu vị trí trước khi đóng
+            local savedPos = main.Position
             TweenService:Create(overlay, TweenInfo.new(0.3,Enum.EasingStyle.Quad,Enum.EasingDirection.Out), {BackgroundTransparency=1}):Play()
             TweenService:Create(main, TweenInfo.new(0.35,Enum.EasingStyle.Back,Enum.EasingDirection.In),
                 {Size=UDim2.new(0,FRAME_W*0.05,0,FRAME_H*0.05), BackgroundTransparency=1}):Play()
             task.delay(0.35, function()
-                main.Visible = false; main.BackgroundTransparency = 0.3
+                main.Visible = false
+                main.BackgroundTransparency = 0.3
+                main.Position = savedPos       -- giữ nguyên vị trí
+                main.Size = UDim2.new(0,FRAME_W,0,FRAME_H)  -- reset size về full
                 overlay.Visible = false; openBtn.Visible = true
                 openBtn.Size = UDim2.new(0,0,0,0)
                 TweenService:Create(openBtn, TweenInfo.new(0.4,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Size=UDim2.new(0,50,0,50)}):Play()
@@ -488,7 +499,11 @@ function Library:CreateWindow()
             openBtn.Visible = false
             overlay.Visible = true; overlay.BackgroundTransparency = 1
             TweenService:Create(overlay, TweenInfo.new(0.35,Enum.EasingStyle.Quad,Enum.EasingDirection.Out), {BackgroundTransparency=0.5}):Play()
-            main.Position = UDim2.new(0.5,0,0.5,0); main.Visible = true
+            -- Nếu đang lock thì mở lại đúng vị trí cũ, không reset về giữa
+            if not isLocked then
+                main.Position = UDim2.new(0.5,0,0.5,0)
+            end
+            main.Visible = true
             main.Size = UDim2.new(0,FRAME_W*0.05,0,FRAME_H*0.05); main.BackgroundTransparency = 1
             TweenService:Create(main, TweenInfo.new(0.45,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
                 {Size=UDim2.new(0,FRAME_W,0,FRAME_H), BackgroundTransparency=0.3}):Play()
@@ -496,10 +511,12 @@ function Library:CreateWindow()
         end
     end
 
-    closeBtn.MouseButton1Click:Connect(function() PlayClickSound(); ToggleUI() end)
+    closeBtn.MouseButton1Click:Connect(function()
+        PlayClickSound(); ToggleUI()
+    end)
+    openBtn.MouseButton1Click:Connect(function() PlayClickSound(); ToggleUI() end)
     lockBtn.MouseButton1Click:Connect(function()
         PlayClickSound(); isLocked = not isLocked
-        -- Dùng GitHub asset nếu có, fallback Decal resolve
         lockBtn.Image = isLocked
             and GetAsset("lockIcon",   ICONS.lock)
             or  GetAsset("unlockIcon", ICONS.unlock)
@@ -684,7 +701,7 @@ function Library:CreateWindow()
     AttachScrollLock(sidebar)
 
     local tabContainer = Instance.new("Frame", main)
-    tabContainer.Size = UDim2.new(0,335,0,215); tabContainer.Position = UDim2.new(0,8,0,10)
+    tabContainer.Size = UDim2.new(0,335,0,215); tabContainer.Position = UDim2.new(0,28,0,10)
     tabContainer.BackgroundTransparency = 1; tabContainer.ClipsDescendants = true
 
     local pages = Instance.new("Frame", tabContainer)
@@ -903,72 +920,109 @@ function Library:CreateWindow()
         local arrow = Instance.new("TextLabel", head)
         arrow.Size = UDim2.new(0,16,1,0); arrow.Position = UDim2.new(1,-18,0,0)
         arrow.Text = "V"; arrow.Font = Enum.Font.GothamBold; arrow.TextColor3 = DarkPink; arrow.TextSize = 9; arrow.BackgroundTransparency = 1
+        local PINK_LIGHT  = Color3.fromRGB(255,240,246)
+        local PINK_SELECT = Color3.fromRGB(255,215,230)
+
         local listFrame = Instance.new("ScrollingFrame", main)
-        listFrame.BackgroundColor3 = Color3.fromRGB(255,243,247); listFrame.BackgroundTransparency = 0
+        listFrame.BackgroundColor3 = PINK_LIGHT
+        listFrame.BackgroundTransparency = 0
+        listFrame.BorderSizePixel = 0
         listFrame.Visible = false; listFrame.ZIndex = 50; listFrame.ClipsDescendants = true
-        listFrame.ScrollBarThickness = 2; listFrame.ScrollBarImageColor3 = Color3.fromRGB(235,110,140)
+        listFrame.ScrollBarThickness = 2; listFrame.ScrollBarImageColor3 = DarkPink
         listFrame.CanvasSize = UDim2.new(0,0,0,0); listFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
         listFrame.ScrollingDirection = Enum.ScrollingDirection.Y; listFrame.ElasticBehavior = Enum.ElasticBehavior.Never
         Instance.new("UICorner", listFrame).CornerRadius = UDim.new(0,8)
-        local listStroke = Instance.new("UIStroke", listFrame); listStroke.Color = DarkPink; listStroke.Thickness = 1.0; listStroke.Transparency = 0.4
+        local listStroke = Instance.new("UIStroke", listFrame)
+        listStroke.Color = DarkPink; listStroke.Thickness = 1.0; listStroke.Transparency = 0.5
+
         local function CloseList(instant)
             if not isOpen then return end; isOpen = false; activeDropdown = nil
             TweenService:Create(arrow, TweenInfo.new(0.2,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Rotation=0}):Play()
             TweenService:Create(headStroke, TweenInfo.new(0.15), {Transparency=0}):Play()
-            if instant then listFrame.Visible = false
-            else
-                TweenService:Create(listFrame, TweenInfo.new(0.15,Enum.EasingStyle.Quad,Enum.EasingDirection.In), {BackgroundTransparency=1}):Play()
-                task.delay(0.18, function() listFrame.Visible = false; listFrame.BackgroundTransparency = 0 end)
-            end
+            listFrame.Visible = false
         end
+
         local function OpenList()
             if activeDropdown and activeDropdown ~= CloseList then activeDropdown(true) end
             activeDropdown = CloseList; isOpen = true
             local absPos = head.AbsolutePosition; local absSize = head.AbsoluteSize
             local totalH = #options * ITEM_H + 6; local listW = absSize.X
-            for _, c in pairs(listFrame:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
+
+            -- Xóa item cũ
+            for _, c in pairs(listFrame:GetChildren()) do
+                if c:IsA("TextButton") or c:IsA("Frame") then c:Destroy() end
+            end
+
+            -- Padding trên
+            local padTop = Instance.new("Frame", listFrame)
+            padTop.Size = UDim2.new(1,0,0,3); padTop.BackgroundTransparency = 1
+
             for i, opt in ipairs(options) do
+                local isSel = opt == selected
                 local item = Instance.new("TextButton", listFrame)
-                item.Size = UDim2.new(1,0,0,ITEM_H); item.Position = UDim2.new(0,0,0,(i-1)*ITEM_H+3)
-                item.BackgroundColor3 = opt==selected and Color3.fromRGB(255,215,228) or Color3.fromRGB(255,248,251)
-                item.BackgroundTransparency = opt==selected and 0 or 0.6
-                item.Font = Enum.Font.GothamBold; item.TextColor3 = opt==selected and DarkPink or TextColor
-                item.TextSize = 9; item.TextXAlignment = Enum.TextXAlignment.Left; item.ZIndex = 51; item.Text = ""
-                local pad = Instance.new("UIPadding", item); pad.PaddingLeft = UDim.new(0,10)
-                if i==1 or i==#options then Instance.new("UICorner", item).CornerRadius = UDim.new(0,8) end
+                item.Size = UDim2.new(1,-8,0,ITEM_H)
+                item.Position = UDim2.new(0,4,0,(i-1)*ITEM_H+3)
+                item.BackgroundColor3 = isSel and PINK_SELECT or PINK_LIGHT
+                item.BackgroundTransparency = isSel and 0 or 1
+                item.BorderSizePixel = 0
+                item.Text = ""; item.ZIndex = 51
+                Instance.new("UICorner", item).CornerRadius = UDim.new(0,6)
+
+                -- Checkmark
                 local chk = Instance.new("TextLabel", item)
-                chk.Size = UDim2.new(0,12,1,0); chk.Text = opt==selected and "✓" or ""
-                chk.Font = Enum.Font.GothamBold; chk.TextSize = 8; chk.TextColor3 = DarkPink; chk.BackgroundTransparency = 1; chk.ZIndex = 52
+                chk.Size = UDim2.new(0,16,1,0); chk.Position = UDim2.new(0,4,0,0)
+                chk.Text = isSel and "✓" or ""
+                chk.Font = Enum.Font.GothamBold; chk.TextSize = 8
+                chk.TextColor3 = DarkPink; chk.BackgroundTransparency = 1; chk.ZIndex = 52
+
+                -- Text
                 local txt = Instance.new("TextLabel", item)
-                txt.Size = UDim2.new(1,-14,1,0); txt.Position = UDim2.new(0,14,0,0)
+                txt.Size = UDim2.new(1,-20,1,0); txt.Position = UDim2.new(0,20,0,0)
                 txt.Text = opt; txt.Font = Enum.Font.GothamBold; txt.TextSize = 9
-                txt.TextColor3 = opt==selected and DarkPink or TextColor
-                txt.TextXAlignment = Enum.TextXAlignment.Left; txt.BackgroundTransparency = 1; txt.ZIndex = 52
+                txt.TextColor3 = isSel and DarkPink or TextColor
+                txt.TextXAlignment = Enum.TextXAlignment.Left
+                txt.BackgroundTransparency = 1; txt.ZIndex = 52
+
+                -- Separator (trừ item cuối)
+                if i < #options then
+                    local sep = Instance.new("Frame", listFrame)
+                    sep.Size = UDim2.new(1,-16,0,1)
+                    sep.Position = UDim2.new(0,8,0,i*ITEM_H+3)
+                    sep.BackgroundColor3 = DarkPink
+                    sep.BackgroundTransparency = 0.85
+                    sep.BorderSizePixel = 0; sep.ZIndex = 51
+                end
+
                 item.MouseEnter:Connect(function()
-                    if opt~=selected then TweenService:Create(item, TweenInfo.new(0.1), {BackgroundTransparency=0.5, BackgroundColor3=Color3.fromRGB(255,228,238)}):Play(); txt.TextColor3 = DarkPink end
+                    if opt ~= selected then
+                        TweenService:Create(item, TweenInfo.new(0.1), {BackgroundColor3=Color3.fromRGB(255,228,240), BackgroundTransparency=0}):Play()
+                        txt.TextColor3 = DarkPink
+                    end
                 end)
                 item.MouseLeave:Connect(function()
-                    if opt~=selected then TweenService:Create(item, TweenInfo.new(0.1), {BackgroundTransparency=1, BackgroundColor3=Color3.fromRGB(255,248,251)}):Play(); txt.TextColor3 = TextColor end
+                    if opt ~= selected then
+                        TweenService:Create(item, TweenInfo.new(0.1), {BackgroundTransparency=1}):Play()
+                        txt.TextColor3 = TextColor
+                    end
                 end)
                 item.MouseButton1Click:Connect(function()
-                    PlayClickSound(); selected=opt; S[savedKey]=selected; Save(); valLbl.Text = selected
+                    PlayClickSound(); selected=opt; S[savedKey]=selected; Save(); valLbl.Text=selected
                     task.defer(function() pillBg.Position = UDim2.new(1,-(pillBg.AbsoluteSize.X+22),0.5,-9) end)
-                    TweenService:Create(item, TweenInfo.new(0.07), {BackgroundColor3=Color3.fromRGB(200,255,215)}):Play()
-                    task.delay(0.07, function() CloseList(false) end)
+                    CloseList(false)
                     if onCallback then onCallback(selected) end
                     ShowToast("Đã chọn: "..selected, "✅")
                 end)
             end
+
             local mPos = main.AbsolutePosition
             local relY = absPos.Y - mPos.Y + absSize.Y + 4
             local maxH = math.max(40, FRAME_H - relY - 4)
             local clampedH = math.min(totalH, maxH)
             listFrame.Size = UDim2.new(0,listW,0,clampedH)
             listFrame.Position = UDim2.new(0,absPos.X-mPos.X,0,relY)
-            listFrame.BackgroundTransparency = 1; listFrame.Visible = true
+            listFrame.Visible = true
             TweenService:Create(arrow, TweenInfo.new(0.22,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Rotation=180}):Play()
             TweenService:Create(headStroke, TweenInfo.new(0.15), {Transparency=0.3}):Play()
-            TweenService:Create(listFrame, TweenInfo.new(0.2,Enum.EasingStyle.Quad,Enum.EasingDirection.Out), {BackgroundTransparency=0}):Play()
         end
         local headBtn = Instance.new("TextButton", head)
         headBtn.Size = UDim2.new(1,0,1,0); headBtn.BackgroundTransparency = 1; headBtn.Text = ""; headBtn.ZIndex = 10
@@ -1246,51 +1300,31 @@ function Library:CreateWindow()
             nameLbl.Text = username; nameLbl.Font = Enum.Font.GothamBold
             nameLbl.TextColor3 = TextColor; nameLbl.TextSize = 10
             nameLbl.TextXAlignment = Enum.TextXAlignment.Left; nameLbl.BackgroundTransparency = 1
-            local badge = Instance.new("Frame", btn)
-            badge.Size = UDim2.new(0,32,0,18); badge.Position = UDim2.new(1,-38,0.5,-9)
-            badge.BackgroundColor3 = DarkPink; badge.BackgroundTransparency = 0.15
-            Instance.new("UICorner", badge).CornerRadius = UDim.new(0,5)
-            local badgeLbl = Instance.new("TextLabel", badge)
-            badgeLbl.Size = UDim2.new(1,0,1,0); badgeLbl.Text = "RUN"
-            badgeLbl.Font = Enum.Font.GothamBold; badgeLbl.TextSize = 8
-            badgeLbl.TextColor3 = Color3.new(1,1,1); badgeLbl.BackgroundTransparency = 1
-            local clickBtn = Instance.new("TextButton", btn)
-            clickBtn.Size = UDim2.new(1,0,1,0); clickBtn.BackgroundTransparency = 1; clickBtn.Text = ""
-            local function SpawnRipple(ix, iy)
-                local rp = Instance.new("Frame", btn)
-                local rx = ix-btn.AbsolutePosition.X; local ry = iy-btn.AbsolutePosition.Y
-                local maxR = math.sqrt(btn.AbsoluteSize.X^2+btn.AbsoluteSize.Y^2)*1.5
-                rp.Size=UDim2.new(0,0,0,0); rp.Position=UDim2.new(0,rx,0,ry); rp.AnchorPoint=Vector2.new(0.5,0.5)
-                rp.BackgroundColor3=DarkPink; rp.BackgroundTransparency=0.55; rp.ZIndex=5
-                Instance.new("UICorner",rp).CornerRadius=UDim.new(1,0)
-                TweenService:Create(rp,TweenInfo.new(0.85,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size=UDim2.new(0,maxR,0,maxR)}):Play()
-                TweenService:Create(rp,TweenInfo.new(0.85,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{BackgroundTransparency=1}):Play()
-                game:GetService("Debris"):AddItem(rp, 0.9)
-            end
-            clickBtn.MouseButton1Click:Connect(function()
+            -- Nút RUN — chỉ bấm đúng nút mới chạy
+            local runBtn = Instance.new("TextButton", btn)
+            runBtn.Size = UDim2.new(0,42,0,22); runBtn.Position = UDim2.new(1,-46,0.5,-11)
+            runBtn.BackgroundColor3 = DarkPink; runBtn.BackgroundTransparency = 0.1
+            runBtn.Text = "▶ RUN"; runBtn.Font = Enum.Font.GothamBold
+            runBtn.TextSize = 8; runBtn.TextColor3 = Color3.new(1,1,1); runBtn.ZIndex = 6
+            Instance.new("UICorner", runBtn).CornerRadius = UDim.new(0,6)
+            runBtn.MouseEnter:Connect(function()
+                TweenService:Create(runBtn, TweenInfo.new(0.12), {BackgroundTransparency=0, Size=UDim2.new(0,44,0,24), Position=UDim2.new(1,-47,0.5,-12)}):Play()
+            end)
+            runBtn.MouseLeave:Connect(function()
+                TweenService:Create(runBtn, TweenInfo.new(0.12), {BackgroundTransparency=0.1, Size=UDim2.new(0,42,0,22), Position=UDim2.new(1,-46,0.5,-11)}):Play()
+            end)
+            runBtn.MouseButton1Click:Connect(function()
                 PlayClickSound()
-                local mp = UserInputService:GetMouseLocation(); SpawnRipple(mp.X, mp.Y)
-                TweenService:Create(btn, TweenInfo.new(0.06), {Size=UDim2.new(0.92,-8,0,28), Position=UDim2.new(0.04,4,0,capturedY+3)}):Play()
-                TweenService:Create(stroke, TweenInfo.new(0.06), {Color=Color3.fromRGB(255,80,120), Thickness=2.5}):Play()
-                TweenService:Create(iconBg, TweenInfo.new(0.12,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Rotation=15}):Play()
-                task.delay(0.06, function()
-                    TweenService:Create(btn, TweenInfo.new(0.22,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
-                        {Size=UDim2.new(1,-4,0,34), Position=UDim2.new(0,2,0,capturedY)}):Play()
-                    TweenService:Create(stroke, TweenInfo.new(0.2), {Color=DarkPink, Thickness=1.2}):Play()
-                    TweenService:Create(iconBg, TweenInfo.new(0.25,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Rotation=0}):Play()
+                TweenService:Create(runBtn, TweenInfo.new(0.07), {Size=UDim2.new(0,36,0,18), Position=UDim2.new(1,-43,0.5,-9)}):Play()
+                TweenService:Create(stroke, TweenInfo.new(0.07), {Color=Color3.fromRGB(255,80,120), Thickness=2}):Play()
+                TweenService:Create(iconBg, TweenInfo.new(0.1,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Rotation=15}):Play()
+                task.delay(0.07, function()
+                    TweenService:Create(runBtn, TweenInfo.new(0.2,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Size=UDim2.new(0,42,0,22), Position=UDim2.new(1,-46,0.5,-11)}):Play()
+                    TweenService:Create(stroke, TweenInfo.new(0.15), {Color=DarkPink, Thickness=1.2}):Play()
+                    TweenService:Create(iconBg, TweenInfo.new(0.2,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Rotation=0}):Play()
                 end)
-                if toastMsg then ShowToast(toastMsg, "\xF0\x9F\x91\xA4") end
+                if toastMsg then ShowToast(toastMsg, "👤") end
                 if callback then callback() end
-            end)
-            clickBtn.MouseEnter:Connect(function()
-                TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundTransparency=0.25}):Play()
-                TweenService:Create(stroke, TweenInfo.new(0.15), {Thickness=2}):Play()
-                TweenService:Create(badge, TweenInfo.new(0.15), {BackgroundTransparency=0}):Play()
-            end)
-            clickBtn.MouseLeave:Connect(function()
-                TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundTransparency=0.45}):Play()
-                TweenService:Create(stroke, TweenInfo.new(0.15), {Thickness=1.2}):Play()
-                TweenService:Create(badge, TweenInfo.new(0.15), {BackgroundTransparency=0.15}):Play()
             end)
             btn.Position = UDim2.new(0.3,2,0,capturedY); btn.BackgroundTransparency = 1
             task.defer(function()
@@ -1528,19 +1562,60 @@ homeTab:AddButton("???", function()
         msgLbl.Position = UDim2.new(0.075,0,0.42,0)
         msgLbl.AnchorPoint = Vector2.new(0,0)
         msgLbl.BackgroundTransparency = 1
-        msgLbl.TextColor3 = Pink
+        msgLbl.TextColor3 = Color3.fromRGB(220,40,40)
         msgLbl.Font = Enum.Font.GothamBold
         msgLbl.TextSize = 22
         msgLbl.TextWrapped = true
         msgLbl.TextTransparency = 1
         msgLbl.Text = ""; msgLbl.ZIndex = 2
 
+        -- Logo góc phải dưới — xoay chậm
+        local logoImg = Instance.new("ImageLabel", darkGui)
+        logoImg.Size = UDim2.new(0,64,0,64)
+        logoImg.Position = UDim2.new(1,-76,1,-76)
+        logoImg.AnchorPoint = Vector2.new(0.5,0.5)
+        logoImg.BackgroundTransparency = 1
+        logoImg.ScaleType = Enum.ScaleType.Fit
+        logoImg.ImageTransparency = 0.3
+        logoImg.ZIndex = 2
+        logoImg.Image = GetAsset("homeIcon","")
+        task.spawn(function()
+            for _ = 1,60 do
+                local img = GetAsset("homeIcon","")
+                if img ~= "" then logoImg.Image = img; break end
+                task.wait(0.5)
+            end
+        end)
+        -- Xoay chậm
+        task.spawn(function()
+            local rot = 0
+            while logoImg and logoImg.Parent do
+                rot = (rot + 2.3) % 360
+                logoImg.Rotation = rot
+                RunService.Heartbeat:Wait()
+            end
+        end)
+
         -- Phát nhạc
         local sound = Instance.new("Sound", workspace)
         sound.Volume = 1
 
         task.spawn(function()
-            -- Load asset
+            -- Phát chuông trước
+            local bell = Instance.new("Sound", workspace)
+            bell.Volume = 1
+            local bs = GetAsset("bellSound","")
+            for _ = 1,60 do
+                if bs ~= "" then break end
+                task.wait(0.5)
+                bs = GetAsset("bellSound","")
+            end
+            bell.SoundId = bs
+            bell:Play()
+            bell.Ended:Wait()
+            game:GetService("Debris"):AddItem(bell, 1)
+
+            -- Rồi mới load và phát nhạc bí mật
             local s = GetAsset("secretSound","")
             for _ = 1,60 do
                 if s ~= "" then break end
@@ -1550,6 +1625,7 @@ homeTab:AddButton("???", function()
             sound.SoundId = s
             sound:Play()
 
+
             -- Đợi load xong để biết TimeLength
             task.wait(1)
             local totalLen = math.max(sound.TimeLength, 30)
@@ -1557,9 +1633,6 @@ homeTab:AddButton("???", function()
 
             -- Chuỗi loop
             local msgs = {
-                {t="Stand still.",                                     s=22, dur=3.5},
-                {t="Hold.",                                            s=22, dur=3},
-                {t="Move.",                                            s=22, dur=3},
                 {t="Don't move.",                                      s=22, dur=3.5},
                 {t="Good job.",                                        s=22, dur=3},
                 {t="Please stand still and don't move anything.",      s=16, dur=4.5},
@@ -1606,7 +1679,7 @@ homeTab:AddButton("???", function()
             end
 
             -- Kick ngay
-            lp:Kick("Never touch it if you're too curious. If you re-enter my script, you will be banned.")
+            lp:Kick("??? | LongTokai got U")
         end)
     end)
 end, nil, nil)
