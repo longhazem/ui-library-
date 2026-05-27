@@ -1167,81 +1167,111 @@ function Library:CreateWindow()
             apTitle.Font=Enum.Font.GothamBold; apTitle.TextSize=8
             apTitle.TextColor3=Color3.new(1,1,1); apTitle.BackgroundTransparency=1
             apTitle.ZIndex=52; apTitle.TextXAlignment=Enum.TextXAlignment.Left
-            local apClose=Instance.new("TextButton",apHeader)
+            local apClose=Instance.new("ImageButton",apHeader)
             apClose.Size=UDim2.new(0,20,0,20); apClose.Position=UDim2.new(1,-23,0.5,-10)
-            apClose.Text="✕"; apClose.Font=Enum.Font.GothamBold; apClose.TextSize=9
-            apClose.TextColor3=Color3.new(1,1,1); apClose.BackgroundTransparency=1; apClose.ZIndex=53
+            apClose.Image=GetAsset("tabClose", ResolveImage("7072725342"))
+            apClose.BackgroundTransparency=1; apClose.ZIndex=53; apClose.ScaleType=Enum.ScaleType.Fit
+            local apClosePad=Instance.new("UIPadding",apClose)
+            apClosePad.PaddingTop=UDim.new(0,2); apClosePad.PaddingBottom=UDim.new(0,2)
+            apClosePad.PaddingLeft=UDim.new(0,2); apClosePad.PaddingRight=UDim.new(0,2)
 
-            -- ViewportFrame xoay nhân vật
-            local vp=Instance.new("ViewportFrame",avatarPanel)
-            vp.Size=UDim2.new(1,-8,1,-56); vp.Position=UDim2.new(0,4,0,30)
-            vp.BackgroundColor3=Color3.fromRGB(235,210,225)
-            vp.BackgroundTransparency=0.3; vp.ZIndex=51
-            vp.Ambient=Color3.new(1,1,1); vp.LightColor=Color3.new(1,1,1)
-            vp.LightDirection=Vector3.new(-1,-2,-1)
-            Instance.new("UICorner",vp).CornerRadius=UDim.new(0,10)
+            -- ViewportFrame 3D
+            local vp = Instance.new("ViewportFrame", avatarPanel)
+            vp.Size = UDim2.new(1,-8,1,-56)
+            vp.Position = UDim2.new(0,4,0,30)
+            vp.BackgroundColor3 = Color3.fromRGB(230,210,220)
+            vp.BackgroundTransparency = 0.2
+            vp.ZIndex = 51
+            vp.Ambient = Color3.new(1,1,1)
+            vp.LightColor = Color3.new(1,1,1)
+            vp.LightDirection = Vector3.new(-1,-2,-1)
+            Instance.new("UICorner",vp).CornerRadius = UDim.new(0,10)
 
-            local vpCam=Instance.new("Camera"); vpCam.Parent=vp; vp.CurrentCamera=vpCam
+            local vpCam = Instance.new("Camera")
+            vpCam.Parent = vp
+            vp.CurrentCamera = vpCam
 
-            -- Hint xoay
-            local hintLbl=Instance.new("TextLabel",avatarPanel)
-            hintLbl.Size=UDim2.new(1,0,0,12); hintLbl.Position=UDim2.new(0,0,1,-18)
-            hintLbl.Text="drag to rotate"; hintLbl.Font=Enum.Font.Gotham
-            hintLbl.TextSize=7; hintLbl.TextColor3=DarkPink
-            hintLbl.BackgroundTransparency=1; hintLbl.ZIndex=52
+            local hintLbl = Instance.new("TextLabel", avatarPanel)
+            hintLbl.Size = UDim2.new(1,0,0,12)
+            hintLbl.Position = UDim2.new(0,0,1,-16)
+            hintLbl.Text = "← drag to rotate →"
+            hintLbl.Font = Enum.Font.Gotham
+            hintLbl.TextSize = 7; hintLbl.TextColor3 = DarkPink
+            hintLbl.BackgroundTransparency = 1; hintLbl.ZIndex = 52
 
-            local charClone=nil
-            local camAngleY=0; local camAngleX=10
-            local charPos=Vector3.new(0,0,0)
+            local wm = Instance.new("WorldModel", vp)
+            local charClone = nil
+            local camAngleY = 0; local camAngleX = 10
 
             local function UpdateCam()
-                local center=charPos+Vector3.new(0,1,0)
-                local rad1=math.rad(camAngleY); local rad2=math.rad(camAngleX)
-                local x=math.sin(rad1)*math.cos(rad2)*5
-                local y=math.sin(rad2)*5
-                local z=math.cos(rad1)*math.cos(rad2)*5
-                vpCam.CFrame=CFrame.new(center+Vector3.new(x,y,z),center)
+                local center = Vector3.new(0,1.5,0)  -- giữa thân, canh từ phần thân
+                local r1 = math.rad(camAngleY)
+                local r2 = math.rad(camAngleX)
+                local d = 5
+                vpCam.CFrame = CFrame.new(
+                    center + Vector3.new(
+                        math.sin(r1)*math.cos(r2)*d,
+                        math.sin(r2)*d,
+                        math.cos(r1)*math.cos(r2)*d
+                    ), center
+                )
             end
 
             local function LoadChar()
-                if charClone then charClone:Destroy(); charClone=nil end
-                local char=Players.LocalPlayer.Character; if not char then return end
-                charClone=char:Clone()
-                for _,v in pairs(charClone:GetDescendants()) do
-                    if v:IsA("Script") or v:IsA("LocalScript") or v:IsA("Animator") then v:Destroy() end
-                end
-                for _,p in pairs(charClone:GetDescendants()) do
-                    if p:IsA("BasePart") then p.Anchored=true; p.CanCollide=false end
-                end
-                -- Lấy vị trí thật của nhân vật trong world
-                local hrp=charClone:FindFirstChild("HumanoidRootPart")
-                charPos=hrp and hrp.Position or Vector3.new(0,0,0)
-                -- Parent thẳng vào vp KHÔNG move gì
-                charClone.Parent=vp
-                UpdateCam()
+                for _,v in pairs(wm:GetChildren()) do v:Destroy() end
+                charClone = nil
+                task.spawn(function()
+                    local ok,desc = pcall(function()
+                        return Players:GetHumanoidDescriptionFromUserId(Players.LocalPlayer.UserId)
+                    end)
+                    if not ok or not desc then return end
+                    local ok2,model = pcall(function()
+                        return Players:CreateHumanoidModelFromDescription(desc, Enum.HumanoidRigType.R15)
+                    end)
+                    if not ok2 or not model then return end
+                    charClone = model
+                    -- Parent vào WorldModel trước
+                    charClone.Parent = wm
+                    local hrp = charClone:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        charClone.PrimaryPart = hrp
+                        -- Đợi 1 frame để weld/motor6D settle
+                        task.wait()
+                        charClone:PivotTo(CFrame.new(0,1.5,0) * CFrame.Angles(0,math.rad(180),0))
+                        -- Đợi thêm 1 frame rồi mới anchor
+                        task.wait()
+                    end
+                    -- Anchor TẤT CẢ BasePart sau khi pivot xong
+                    for _,p in pairs(charClone:GetDescendants()) do
+                        if p:IsA("BasePart") then
+                            p.Anchored = true
+                            p.CanCollide = false
+                        end
+                    end
+                    UpdateCam()
+                end)
             end
 
-            -- Drag để xoay camera
-            local dragging=false; local lastInput=nil
+            -- Drag xoay
+            local dragging = false
             vp.InputBegan:Connect(function(inp)
-                if inp.UserInputType==Enum.UserInputType.Touch
-                or inp.UserInputType==Enum.UserInputType.MouseButton1 then
-                    dragging=true; lastInput=inp.Position
+                if inp.UserInputType == Enum.UserInputType.Touch
+                or inp.UserInputType == Enum.UserInputType.MouseButton1 then
+                    dragging = true
                 end
             end)
             UserInputService.InputEnded:Connect(function(inp)
-                if inp.UserInputType==Enum.UserInputType.Touch
-                or inp.UserInputType==Enum.UserInputType.MouseButton1 then
-                    dragging=false
+                if inp.UserInputType == Enum.UserInputType.Touch
+                or inp.UserInputType == Enum.UserInputType.MouseButton1 then
+                    dragging = false
                 end
             end)
             UserInputService.InputChanged:Connect(function(inp)
                 if not dragging then return end
-                if inp.UserInputType==Enum.UserInputType.MouseMovement
-                or inp.UserInputType==Enum.UserInputType.Touch then
-                    local delta=inp.Delta
-                    camAngleY=camAngleY-delta.X*0.6
-                    camAngleX=math.clamp(camAngleX+delta.Y*0.3,-20,40)
+                if inp.UserInputType == Enum.UserInputType.MouseMovement
+                or inp.UserInputType == Enum.UserInputType.Touch then
+                    camAngleY = camAngleY - inp.Delta.X * 0.5
+                    camAngleX = math.clamp(camAngleX + inp.Delta.Y * 0.3, -20, 40)
                     UpdateCam()
                 end
             end)
@@ -1460,62 +1490,271 @@ function Library:CreateWindow()
         function elements:AddSlider(text, min, max, savedKey, suffix, callback)
             MakeSlider(page, text, yOffset, min, max, savedKey, suffix or "", callback); yOffset = yOffset + 44
         end
-        function elements:AddDropdown(text, options, savedKey, callback)
-            local _h,_t = MakeDropdown(page, text, yOffset, options, savedKey, callback); yOffset = yOffset + 32
-        end
-        function elements:AddCreation()
-            -- card nhỏ gọn: 4 chấm + tên tác giả nhỏ
-            local card=Instance.new("Frame",page); card.Size=UDim2.new(1,0,0,26); card.Position=UDim2.new(0,0,0,yOffset); card.BackgroundColor3=Color3.fromRGB(255,255,255); card.BackgroundTransparency=0.55; Instance.new("UICorner",card).CornerRadius=UDim.new(0,8)
-            local row=Instance.new("Frame",card); row.Size=UDim2.new(1,-10,1,0); row.Position=UDim2.new(0,8,0,0); row.BackgroundTransparency=1
-            local rl=Instance.new("UIListLayout",row); rl.FillDirection=Enum.FillDirection.Horizontal; rl.VerticalAlignment=Enum.VerticalAlignment.Center; rl.Padding=UDim.new(0,5)
-            -- 4 chấm màu
-            local dotColors={Color3.fromRGB(235,110,140),Color3.fromRGB(200,140,220),Color3.fromRGB(140,180,235),Color3.fromRGB(140,220,180)}
-            for _,col in ipairs(dotColors) do
-                local d=Instance.new("Frame",row); d.Size=UDim2.new(0,5,0,5); d.BackgroundColor3=col; Instance.new("UICorner",d).CornerRadius=UDim.new(1,0)
-            end
-            -- tên nhỏ
-            local names=Instance.new("TextLabel",row); names.Size=UDim2.new(0,0,1,0); names.AutomaticSize=Enum.AutomaticSize.X; names.Text="longtokai · zentakt"; names.Font=Enum.Font.Gotham; names.TextColor3=Color3.fromRGB(160,100,120); names.TextSize=8; names.BackgroundTransparency=1
-            yOffset = yOffset + 30
-        end
-        -- Section bar có icon ảnh bên trái
-        function elements:AddSectionWithIcon(text, assetKey)
+        function elements:AddColorPicker(text, savedKey, callback)
             local capturedY = yOffset
-            local bar = Instance.new("Frame", page)
-            bar.Size = UDim2.new(1,-4,0,22); bar.Position = UDim2.new(0,2,0,capturedY)
-            bar.BackgroundColor3 = Color3.fromRGB(255,255,255); bar.BackgroundTransparency = 0.6
-            Instance.new("UICorner", bar).CornerRadius = UDim.new(0,6)
-            local barStroke = Instance.new("UIStroke", bar); barStroke.Color = DarkPink; barStroke.Thickness = 1; barStroke.Transparency = 0.5
-            -- Icon ảnh
-            local iconImg = Instance.new("ImageLabel", bar)
-            iconImg.Size = UDim2.new(0,16,0,16); iconImg.Position = UDim2.new(0,4,0.5,-8)
-            iconImg.BackgroundTransparency = 1; iconImg.ScaleType = Enum.ScaleType.Fit
-            iconImg.Image = GetAsset(assetKey, "")
-            task.spawn(function()
-                for _ = 1, 40 do task.wait(0.3)
-                    local img = GetAsset(assetKey, "")
-                    if img ~= "" then iconImg.Image = img; break end
+            -- Head row
+            local head = Instance.new("Frame", page)
+            head.Size = UDim2.new(1,-4,0,28); head.Position = UDim2.new(0,2,0,capturedY)
+            head.BackgroundColor3 = Color3.fromRGB(255,255,255); head.BackgroundTransparency = 0.45
+            head.ClipsDescendants = false; head.ZIndex = 5
+            Instance.new("UICorner",head).CornerRadius = UDim.new(0,9)
+            local headStroke = Instance.new("UIStroke",head); headStroke.Color = DarkPink; headStroke.Thickness = 1.2
+
+            local lbl = Instance.new("TextLabel",head)
+            lbl.Size = UDim2.new(0.6,0,1,0); lbl.Position = UDim2.new(0,8,0,0)
+            lbl.Text = text; lbl.Font = Enum.Font.GothamBold; lbl.TextSize = 9
+            lbl.TextColor3 = TextColor; lbl.BackgroundTransparency = 1; lbl.ZIndex = 6
+            lbl.TextXAlignment = Enum.TextXAlignment.Left
+
+            -- Preview màu
+            local preview = Instance.new("Frame",head)
+            preview.Size = UDim2.new(0,18,0,18); preview.Position = UDim2.new(1,-50,0.5,-9)
+            preview.BackgroundColor3 = Color3.fromRGB(235,110,140); preview.ZIndex = 6
+            Instance.new("UICorner",preview).CornerRadius = UDim.new(1,0)
+            Instance.new("UIStroke",preview).Color = DarkPink
+
+            local arrow = Instance.new("TextLabel",head)
+            arrow.Size = UDim2.new(0,16,1,0); arrow.Position = UDim2.new(1,-22,0,0)
+            arrow.Text = "▼"; arrow.Font = Enum.Font.GothamBold; arrow.TextSize = 8
+            arrow.TextColor3 = DarkPink; arrow.BackgroundTransparency = 1; arrow.ZIndex = 6
+
+            -- Load saved
+            local saved = S[savedKey] or "EB6E8C"
+            local function hexToColor(hex)
+                return Color3.fromRGB(
+                    tonumber(hex:sub(1,2),16) or 235,
+                    tonumber(hex:sub(3,4),16) or 110,
+                    tonumber(hex:sub(5,6),16) or 140
+                )
+            end
+            local function colorToHex(c)
+                return string.format("%02X%02X%02X",
+                    math.floor(c.R*255), math.floor(c.G*255), math.floor(c.B*255))
+            end
+            local currentColor = hexToColor(saved)
+            preview.BackgroundColor3 = currentColor
+
+            -- ════ PANEL ════
+            local PANEL_W = 200; local PANEL_H = 230
+            local panel = Instance.new("Frame", main)
+            panel.Size = UDim2.new(0,PANEL_W,0,PANEL_H)
+            panel.BackgroundColor3 = Color3.fromRGB(255,245,248)
+            panel.BackgroundTransparency = 0; panel.Visible = false; panel.ZIndex = 100
+            Instance.new("UICorner",panel).CornerRadius = UDim.new(0,12)
+            local pStroke = Instance.new("UIStroke",panel); pStroke.Color = DarkPink; pStroke.Thickness = 1.5
+
+            -- HSV Wheel bằng ImageLabel + EditableImage
+            local WHEEL_SIZE = 130
+            local wheelFrame = Instance.new("Frame", panel)
+            wheelFrame.Size = UDim2.new(0,WHEEL_SIZE,0,WHEEL_SIZE)
+            wheelFrame.Position = UDim2.new(0.5,-WHEEL_SIZE/2,0,8)
+            wheelFrame.BackgroundTransparency = 1; wheelFrame.ZIndex = 101
+            Instance.new("UICorner",wheelFrame).CornerRadius = UDim.new(1,0)
+
+            -- Dùng ImageLabel để hiện wheel từ rbxthumb (hue wheel gradient)
+            -- Vì không có canvas trong Lua, dùng nhiều Frame xoay màu
+            local wheelImg = Instance.new("ImageLabel", wheelFrame)
+            wheelImg.Size = UDim2.new(1,0,1,0)
+            wheelImg.BackgroundTransparency = 1; wheelImg.ZIndex = 101
+            -- Tạo HSV wheel bằng cách stack các wedge màu
+            for i = 0, 35 do
+                local seg = Instance.new("Frame", wheelFrame)
+                seg.Size = UDim2.new(1,0,1,0)
+                seg.AnchorPoint = Vector2.new(0.5,0.5)
+                seg.Position = UDim2.new(0.5,0,0.5,0)
+                seg.BackgroundTransparency = 1; seg.ZIndex = 101
+                local hue = i/36
+                -- Tạo wedge bằng ImageLabel rotate
+                local wedge = Instance.new("Frame", seg)
+                wedge.Size = UDim2.new(0.5,0,1,0)
+                wedge.Position = UDim2.new(0.5,0,0,0)
+                wedge.AnchorPoint = Vector2.new(0,0.5)
+                wedge.BackgroundColor3 = Color3.fromHSV(hue,1,1)
+                wedge.BackgroundTransparency = 0; wedge.ZIndex = 101
+                wedge.Rotation = i * 10
+                seg.Rotation = i * 10
+            end
+            -- White center
+            local center = Instance.new("Frame", wheelFrame)
+            center.Size = UDim2.new(0,WHEEL_SIZE*0.05,0,WHEEL_SIZE*0.05)
+            center.AnchorPoint = Vector2.new(0.5,0.5)
+            center.Position = UDim2.new(0.5,0,0.5,0)
+            center.BackgroundColor3 = Color3.new(1,1,1); center.ZIndex = 105
+            Instance.new("UICorner",center).CornerRadius = UDim.new(1,0)
+
+            -- Dot chỉ vị trí
+            local dot = Instance.new("Frame", wheelFrame)
+            dot.Size = UDim2.new(0,10,0,10); dot.AnchorPoint = Vector2.new(0.5,0.5)
+            dot.Position = UDim2.new(0.5,0,0.5,0)
+            dot.BackgroundColor3 = Color3.new(1,1,1); dot.ZIndex = 106
+            Instance.new("UICorner",dot).CornerRadius = UDim.new(1,0)
+            Instance.new("UIStroke",dot).Color = Color3.fromRGB(100,100,100)
+
+            -- Biến HSV
+            local curH,curS,curV = 0, 0.8, 1.0
+
+            local function hsvToRgb(h,s,v)
+                local r,g,b
+                local i=math.floor(h*6); local f=h*6-i
+                local p=v*(1-s); local q=v*(1-f*s); local t2=v*(1-(1-f)*s)
+                i=i%6
+                if i==0 then r,g,b=v,t2,p elseif i==1 then r,g,b=q,v,p
+                elseif i==2 then r,g,b=p,v,t2 elseif i==3 then r,g,b=p,q,v
+                elseif i==4 then r,g,b=t2,p,v else r,g,b=v,p,q end
+                return math.floor(r*255), math.floor(g*255), math.floor(b*255)
+            end
+
+            -- RGB labels
+            local rLbl = Instance.new("TextLabel",panel); rLbl.Size=UDim2.new(0,30,0,14)
+            rLbl.Position=UDim2.new(0,6,0,WHEEL_SIZE+14); rLbl.Text="R 235"
+            rLbl.Font=Enum.Font.GothamBold; rLbl.TextSize=8; rLbl.TextColor3=Color3.fromRGB(220,60,60)
+            rLbl.BackgroundTransparency=1; rLbl.ZIndex=101
+
+            local gLbl = Instance.new("TextLabel",panel); gLbl.Size=UDim2.new(0,30,0,14)
+            gLbl.Position=UDim2.new(0.33,0,0,WHEEL_SIZE+14); gLbl.Text="G 110"
+            gLbl.Font=Enum.Font.GothamBold; gLbl.TextSize=8; gLbl.TextColor3=Color3.fromRGB(60,180,60)
+            gLbl.BackgroundTransparency=1; gLbl.ZIndex=101
+
+            local bLbl = Instance.new("TextLabel",panel); bLbl.Size=UDim2.new(0,30,0,14)
+            bLbl.Position=UDim2.new(0.66,0,0,WHEEL_SIZE+14); bLbl.Text="B 140"
+            bLbl.Font=Enum.Font.GothamBold; bLbl.TextSize=8; bLbl.TextColor3=Color3.fromRGB(60,100,220)
+            bLbl.BackgroundTransparency=1; bLbl.ZIndex=101
+
+            -- Hex label
+            local hexLbl = Instance.new("TextLabel",panel); hexLbl.Size=UDim2.new(1,-12,0,16)
+            hexLbl.Position=UDim2.new(0,6,0,WHEEL_SIZE+28); hexLbl.Text="#EB6E8C"
+            hexLbl.Font=Enum.Font.GothamBold; hexLbl.TextSize=10; hexLbl.TextColor3=DarkPink
+            hexLbl.BackgroundTransparency=1; hexLbl.ZIndex=101; hexLbl.TextXAlignment=Enum.TextXAlignment.Left
+
+            -- Preview dalam panel
+            local panelPreview = Instance.new("Frame",panel)
+            panelPreview.Size=UDim2.new(0,24,0,24); panelPreview.Position=UDim2.new(1,-30,0,WHEEL_SIZE+24)
+            panelPreview.BackgroundColor3=Color3.fromRGB(235,110,140); panelPreview.ZIndex=101
+            Instance.new("UICorner",panelPreview).CornerRadius=UDim.new(0,6)
+
+            -- Brightness slider
+            local briTrack = Instance.new("Frame",panel)
+            briTrack.Size=UDim2.new(1,-12,0,8); briTrack.Position=UDim2.new(0,6,0,WHEEL_SIZE+48)
+            briTrack.BackgroundColor3=Color3.fromRGB(200,180,190); briTrack.ZIndex=101
+            Instance.new("UICorner",briTrack).CornerRadius=UDim.new(1,0)
+            local briGrad = Instance.new("UIGradient",briTrack)
+            briGrad.Color=ColorSequence.new{ColorSequenceKeypoint.new(0,Color3.new(0,0,0)),ColorSequenceKeypoint.new(1,Color3.new(1,1,1))}
+
+            local briThumb = Instance.new("Frame",briTrack)
+            briThumb.Size=UDim2.new(0,12,0,12); briThumb.AnchorPoint=Vector2.new(0.5,0.5)
+            briThumb.Position=UDim2.new(1,0,0.5,0)
+            briThumb.BackgroundColor3=Color3.new(1,1,1); briThumb.ZIndex=102
+            Instance.new("UICorner",briThumb).CornerRadius=UDim.new(1,0)
+            Instance.new("UIStroke",briThumb).Color=DarkPink
+
+            local briLbl=Instance.new("TextLabel",panel); briLbl.Size=UDim2.new(1,-12,0,12)
+            briLbl.Position=UDim2.new(0,6,0,WHEEL_SIZE+58); briLbl.Text="Brightness  100%"
+            briLbl.Font=Enum.Font.Gotham; briLbl.TextSize=7; briLbl.TextColor3=TextColor
+            briLbl.BackgroundTransparency=1; briLbl.ZIndex=101; briLbl.TextXAlignment=Enum.TextXAlignment.Left
+
+            local function updateColor()
+                local r2,g2,b2 = hsvToRgb(curH,curS,curV)
+                local col = Color3.fromRGB(r2,g2,b2)
+                local hex = string.format("%02X%02X%02X",r2,g2,b2)
+                preview.BackgroundColor3 = col
+                panelPreview.BackgroundColor3 = col
+                hexLbl.Text = "#"..hex
+                rLbl.Text = "R "..r2
+                gLbl.Text = "G "..g2
+                bLbl.Text = "B "..b2
+                briGrad.Color = ColorSequence.new{
+                    ColorSequenceKeypoint.new(0,Color3.new(0,0,0)),
+                    ColorSequenceKeypoint.new(1,Color3.fromHSV(curH,curS,1))
+                }
+                briThumb.Position=UDim2.new(curV,0,0.5,0)
+                briLbl.Text="Brightness  "..math.floor(curV*100).."%"
+                currentColor=col; S[savedKey]=hex; Save()
+                if callback then callback(col) end
+            end
+
+            -- Wheel drag
+            local wheelDragging = false
+            local wheelBtn = Instance.new("TextButton",wheelFrame)
+            wheelBtn.Size=UDim2.new(1,0,1,0); wheelBtn.BackgroundTransparency=1; wheelBtn.Text=""; wheelBtn.ZIndex=107
+
+            local function handleWheelInput(ix,iy)
+                local abs=wheelFrame.AbsolutePosition; local sz=wheelFrame.AbsoluteSize
+                local cx2=abs.X+sz.X/2; local cy2=abs.Y+sz.Y/2
+                local dx=ix-cx2; local dy=iy-cy2
+                local dist=math.sqrt(dx*dx+dy*dy)
+                local radius=sz.X/2
+                curH=((math.atan2(dy,dx)*180/math.pi)+360)%360/360
+                curS=math.clamp(dist/radius,0,1)
+                local nx=math.clamp(cx2+dx/math.max(dist,0.001)*math.min(dist,radius)-abs.X, 0, sz.X)
+                local ny=math.clamp(cy2+dy/math.max(dist,0.001)*math.min(dist,radius)-abs.Y, 0, sz.Y)
+                dot.Position=UDim2.new(0,nx,0,ny)
+                updateColor()
+            end
+
+            wheelBtn.MouseButton1Down:Connect(function() wheelDragging=true end)
+            wheelBtn.TouchLongPress:Connect(function() wheelDragging=true end)
+            UserInputService.InputEnded:Connect(function(inp)
+                if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
+                    wheelDragging=false
                 end
             end)
-            -- Text
-            local lbl = Instance.new("TextLabel", bar)
-            lbl.Size = UDim2.new(1,-26,1,0); lbl.Position = UDim2.new(0,24,0,0)
-            lbl.Text = text; lbl.Font = Enum.Font.GothamBold; lbl.TextColor3 = DarkPink; lbl.TextSize = 9
-            lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.BackgroundTransparency = 1
-            -- Slide-in + shimmer
-            bar.Position = UDim2.new(-0.2,0,0,capturedY); bar.BackgroundTransparency = 1; lbl.TextTransparency = 1
-            task.defer(function()
-                TweenService:Create(bar, TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Position=UDim2.new(0,2,0,capturedY), BackgroundTransparency=0.6}):Play()
-                TweenService:Create(lbl, TweenInfo.new(0.3,Enum.EasingStyle.Quad,Enum.EasingDirection.Out), {TextTransparency=0}):Play()
-            end)
-            coroutine.wrap(function()
-                local cols = {DarkPink, Color3.fromRGB(200,120,200), Color3.fromRGB(255,140,170), DarkPink}
-                local i = 1
-                while lbl and lbl.Parent do
-                    task.wait(1.2); i = (i % #cols) + 1
-                    TweenService:Create(lbl, TweenInfo.new(0.6,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut), {TextColor3=cols[i]}):Play()
+            UserInputService.InputChanged:Connect(function(inp)
+                if not wheelDragging then return end
+                if inp.UserInputType==Enum.UserInputType.MouseMovement or inp.UserInputType==Enum.UserInputType.Touch then
+                    handleWheelInput(inp.Position.X, inp.Position.Y)
                 end
-            end)()
-            yOffset = yOffset + 26
+            end)
+            wheelBtn.MouseButton1Click:Connect(function()
+                local mp=UserInputService:GetMouseLocation()
+                handleWheelInput(mp.X, mp.Y)
+            end)
+
+            -- Brightness drag
+            local briDragging=false
+            local briBtn=Instance.new("TextButton",briTrack)
+            briBtn.Size=UDim2.new(1,0,3,0); briBtn.AnchorPoint=Vector2.new(0,0.5)
+            briBtn.Position=UDim2.new(0,0,0.5,0); briBtn.BackgroundTransparency=1; briBtn.Text=""; briBtn.ZIndex=103
+
+            local function handleBri(ix)
+                local abs=briTrack.AbsolutePosition; local sz=briTrack.AbsoluteSize
+                curV=math.clamp((ix-abs.X)/sz.X,0,1)
+                updateColor()
+            end
+            briBtn.MouseButton1Down:Connect(function() briDragging=true end)
+            UserInputService.InputEnded:Connect(function(inp)
+                if inp.UserInputType==Enum.UserInputType.MouseButton1 then briDragging=false end
+            end)
+            UserInputService.InputChanged:Connect(function(inp)
+                if not briDragging then return end
+                if inp.UserInputType==Enum.UserInputType.MouseMovement then
+                    handleBri(inp.Position.X)
+                end
+            end)
+            briBtn.MouseButton1Click:Connect(function()
+                local mp=UserInputService:GetMouseLocation(); handleBri(mp.X)
+            end)
+
+            -- Toggle panel
+            local isOpen=false
+            local headBtn=Instance.new("TextButton",head)
+            headBtn.Size=UDim2.new(1,0,1,0); headBtn.BackgroundTransparency=1; headBtn.Text=""; headBtn.ZIndex=7
+            headBtn.MouseButton1Click:Connect(function()
+                PlayClickSound()
+                if isOpen then
+                    isOpen=false; panel.Visible=false
+                    TweenService:Create(arrow,TweenInfo.new(0.2),{Rotation=0}):Play()
+                else
+                    isOpen=true
+                    local absH=head.AbsolutePosition; local absM=main.AbsolutePosition
+                    panel.Position=UDim2.new(0,absH.X-absM.X,0,absH.Y-absM.Y+30)
+                    panel.Visible=true
+                    TweenService:Create(arrow,TweenInfo.new(0.2),{Rotation=180}):Play()
+                    updateColor()
+                end
+            end)
+
+            updateColor()
+            yOffset = yOffset + 32
         end
         function elements:AddSection(text)
             local capturedY = yOffset
@@ -1820,6 +2059,10 @@ mainTab:AddSlider("Slider 0 → 100%", 0, 100, "testSlider2", "%", function(val)
 mainTab:AddSection("📋 Dropdown Test")
 mainTab:AddDropdown("Chọn bộ phận", {"Head","Root","Torso","LeftArm","RightArm"}, "testDrop1", function(val) print("[Dropdown 1]", val) end)
 mainTab:AddDropdown("Chọn tùy chọn", {"Option A","Option B","Option C"}, "testDrop2", function(val) print("[Dropdown 2]", val) end)
+mainTab:AddSection("🎨 Color Picker Test")
+mainTab:AddColorPicker("Chọn màu", "testColor", function(col)
+    print("[Color]", col)
+end)
 mainTab:AddSection("🎮 Button Test")
 mainTab:AddButton("▶ Chạy Test", function() print("[Button] Đã nhấn!") end, "Test thành công!", "✅")
 
