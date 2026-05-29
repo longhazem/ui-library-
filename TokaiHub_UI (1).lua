@@ -701,7 +701,7 @@ function Library:CreateWindow()
     AttachScrollLock(sidebar)
 
     local tabContainer = Instance.new("Frame", main)
-    tabContainer.Size = UDim2.new(0,335,0,215); tabContainer.Position = UDim2.new(0,8,0,10)
+    tabContainer.Size = UDim2.new(0,335,0,215); tabContainer.Position = UDim2.new(0,28,0,10)
     tabContainer.BackgroundTransparency = 1; tabContainer.ClipsDescendants = true
 
     local pages = Instance.new("Frame", tabContainer)
