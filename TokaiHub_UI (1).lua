@@ -1547,7 +1547,204 @@ function Library:CreateWindow()
             end)()
             yOffset = yOffset + 26
         end
-        function elements:AddSection(text)
+        function elements:AddColorPicker(text, savedKey, callback)
+            local capturedY = yOffset
+
+            -- Head row
+            local head = Instance.new("Frame", page)
+            head.Size = UDim2.new(1,-4,0,28); head.Position = UDim2.new(0,2,0,capturedY)
+            head.BackgroundColor3 = Color3.fromRGB(255,255,255); head.BackgroundTransparency = 0.45
+            head.ZIndex = 5; head.ClipsDescendants = false
+            Instance.new("UICorner",head).CornerRadius = UDim.new(0,9)
+            Instance.new("UIStroke",head).Color = DarkPink
+
+            local lbl = Instance.new("TextLabel",head)
+            lbl.Size = UDim2.new(0.6,0,1,0); lbl.Position = UDim2.new(0,8,0,0)
+            lbl.Text = text; lbl.Font = Enum.Font.GothamBold; lbl.TextSize = 9
+            lbl.TextColor3 = TextColor; lbl.BackgroundTransparency = 1; lbl.ZIndex = 6
+            lbl.TextXAlignment = Enum.TextXAlignment.Left
+
+            local preview = Instance.new("Frame",head)
+            preview.Size = UDim2.new(0,18,0,18); preview.Position = UDim2.new(1,-50,0.5,-9)
+            preview.BackgroundColor3 = Color3.fromRGB(235,110,140); preview.ZIndex = 6
+            Instance.new("UICorner",preview).CornerRadius = UDim.new(1,0)
+
+            local arrow = Instance.new("TextLabel",head)
+            arrow.Size = UDim2.new(0,16,1,0); arrow.Position = UDim2.new(1,-22,0,0)
+            arrow.Text = "▼"; arrow.Font = Enum.Font.GothamBold; arrow.TextSize = 8
+            arrow.TextColor3 = DarkPink; arrow.BackgroundTransparency = 1; arrow.ZIndex = 6
+
+            -- Panel
+            local PANEL_W = 220; local PANEL_H = 200
+            local panel = Instance.new("Frame", main)
+            panel.Size = UDim2.new(0,PANEL_W,0,PANEL_H)
+            panel.BackgroundColor3 = Color3.fromRGB(255,240,245)
+            panel.BackgroundTransparency = 0; panel.Visible = false; panel.ZIndex = 100
+            Instance.new("UICorner",panel).CornerRadius = UDim.new(0,10)
+            Instance.new("UIStroke",panel).Color = DarkPink
+
+            -- SV Canvas (Saturation/Value)
+            local CANVAS_SIZE = 150
+            local canvas = Instance.new("Frame", panel)
+            canvas.Size = UDim2.new(0,CANVAS_SIZE,0,CANVAS_SIZE)
+            canvas.Position = UDim2.new(0,10,0,10)
+            canvas.BackgroundColor3 = Color3.fromRGB(255,0,0)
+            canvas.BorderSizePixel = 0; canvas.ZIndex = 101
+            Instance.new("UICorner",canvas).CornerRadius = UDim.new(0,4)
+            Instance.new("UIStroke",canvas).Color = DarkPink
+
+            -- White gradient (saturation)
+            local satFrame = Instance.new("Frame", canvas)
+            satFrame.Size = UDim2.new(1,0,1,0); satFrame.BackgroundColor3 = Color3.new(1,1,1)
+            satFrame.BorderSizePixel = 0; satFrame.ZIndex = 102
+            local satGrad = Instance.new("UIGradient", satFrame)
+            satGrad.Transparency = NumberSequence.new{NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(1,1)}
+
+            -- Black gradient (value)
+            local valFrame = Instance.new("Frame", canvas)
+            valFrame.Size = UDim2.new(1,0,1,0); valFrame.BackgroundColor3 = Color3.new(0,0,0)
+            valFrame.BorderSizePixel = 0; valFrame.ZIndex = 103
+            local valGrad = Instance.new("UIGradient", valFrame)
+            valGrad.Rotation = 90
+            valGrad.Transparency = NumberSequence.new{NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(1,0)}
+
+            -- Canvas cursor
+            local canvasCursor = Instance.new("Frame", canvas)
+            canvasCursor.Size = UDim2.new(0,8,0,8); canvasCursor.AnchorPoint = Vector2.new(0.5,0.5)
+            canvasCursor.Position = UDim2.new(1,0,0,0)
+            canvasCursor.BackgroundColor3 = Color3.new(1,1,1); canvasCursor.BorderSizePixel = 0; canvasCursor.ZIndex = 105
+            Instance.new("UICorner",canvasCursor).CornerRadius = UDim.new(1,0)
+            Instance.new("UIStroke",canvasCursor).Color = Color3.fromRGB(80,80,80)
+
+            -- Hue Slider
+            local HUE_W = 20; local HUE_H = CANVAS_SIZE
+            local hueSlider = Instance.new("Frame", panel)
+            hueSlider.Size = UDim2.new(0,HUE_W,0,HUE_H)
+            hueSlider.Position = UDim2.new(0,CANVAS_SIZE+18,0,10)
+            hueSlider.BorderSizePixel = 0; hueSlider.ZIndex = 101
+            Instance.new("UICorner",hueSlider).CornerRadius = UDim.new(0,4)
+            Instance.new("UIStroke",hueSlider).Color = DarkPink
+            local hueGrad = Instance.new("UIGradient", hueSlider)
+            hueGrad.Rotation = 90
+            hueGrad.Color = ColorSequence.new{
+                ColorSequenceKeypoint.new(0,    Color3.fromRGB(255,0,0)),
+                ColorSequenceKeypoint.new(0.167,Color3.fromRGB(255,255,0)),
+                ColorSequenceKeypoint.new(0.333,Color3.fromRGB(0,255,0)),
+                ColorSequenceKeypoint.new(0.5,  Color3.fromRGB(0,255,255)),
+                ColorSequenceKeypoint.new(0.667,Color3.fromRGB(0,0,255)),
+                ColorSequenceKeypoint.new(0.833,Color3.fromRGB(255,0,255)),
+                ColorSequenceKeypoint.new(1,    Color3.fromRGB(255,0,0)),
+            }
+
+            -- Hue cursor
+            local hueCursor = Instance.new("Frame", hueSlider)
+            hueCursor.Size = UDim2.new(1,0,0,4); hueCursor.AnchorPoint = Vector2.new(0,0.5)
+            hueCursor.Position = UDim2.new(0,0,0,0)
+            hueCursor.BackgroundColor3 = Color3.new(1,1,1); hueCursor.BorderSizePixel = 0; hueCursor.ZIndex = 102
+
+            -- Preview + hex
+            local previewPanel = Instance.new("Frame", panel)
+            previewPanel.Size = UDim2.new(1,-20,0,14)
+            previewPanel.Position = UDim2.new(0,10,0,CANVAS_SIZE+18)
+            previewPanel.BorderSizePixel = 0; previewPanel.ZIndex = 101
+            Instance.new("UICorner",previewPanel).CornerRadius = UDim.new(0,4)
+
+            local hexLbl = Instance.new("TextLabel", panel)
+            hexLbl.Size = UDim2.new(1,-20,0,14); hexLbl.Position = UDim2.new(0,10,0,CANVAS_SIZE+36)
+            hexLbl.Text = "#EB6E8C"; hexLbl.Font = Enum.Font.GothamBold; hexLbl.TextSize = 9
+            hexLbl.TextColor3 = DarkPink; hexLbl.BackgroundTransparency = 1; hexLbl.ZIndex = 101
+            hexLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+            -- State
+            local curH,curS,curV = 0, 0.8, 1.0
+            local draggingHue, draggingCanvas = false, false
+
+            local function updateColor()
+                local col = Color3.fromHSV(curH, curS, curV)
+                canvas.BackgroundColor3 = Color3.fromHSV(curH, 1, 1)
+                previewPanel.BackgroundColor3 = col
+                preview.BackgroundColor3 = col
+                local r2=math.floor(col.R*255); local g2=math.floor(col.G*255); local b2=math.floor(col.B*255)
+                local hex = string.format("%02X%02X%02X",r2,g2,b2)
+                hexLbl.Text = "#"..hex
+                S[savedKey] = hex; Save()
+                if callback then callback(col) end
+            end
+
+            local function processHue(iy)
+                local abs = hueSlider.AbsolutePosition
+                local sz  = hueSlider.AbsoluteSize
+                curH = math.clamp((iy - abs.Y) / sz.Y, 0, 1)
+                hueCursor.Position = UDim2.new(0, 0, curH, 0)
+                updateColor()
+            end
+
+            local function processCanvas(ix, iy)
+                local abs = canvas.AbsolutePosition
+                local sz  = canvas.AbsoluteSize
+                curS = math.clamp((ix - abs.X) / sz.X, 0, 1)
+                curV = 1 - math.clamp((iy - abs.Y) / sz.Y, 0, 1)
+                canvasCursor.Position = UDim2.new(curS, 0, 1 - curV, 0)
+                updateColor()
+            end
+
+            -- Input buttons trên hueSlider và canvas
+            local hueBtn = Instance.new("TextButton", hueSlider)
+            hueBtn.Size = UDim2.new(1,0,1,0); hueBtn.BackgroundTransparency = 1; hueBtn.Text = ""; hueBtn.ZIndex = 103
+            hueBtn.MouseButton1Down:Connect(function() draggingHue = true; local mp=UserInputService:GetMouseLocation(); processHue(mp.Y) end)
+            hueBtn.MouseButton1Click:Connect(function() local mp=UserInputService:GetMouseLocation(); processHue(mp.Y) end)
+
+            local canvasBtn = Instance.new("TextButton", canvas)
+            canvasBtn.Size = UDim2.new(1,0,1,0); canvasBtn.BackgroundTransparency = 1; canvasBtn.Text = ""; canvasBtn.ZIndex = 106
+            canvasBtn.MouseButton1Down:Connect(function() draggingCanvas = true; local mp=UserInputService:GetMouseLocation(); processCanvas(mp.X,mp.Y) end)
+            canvasBtn.MouseButton1Click:Connect(function() local mp=UserInputService:GetMouseLocation(); processCanvas(mp.X,mp.Y) end)
+
+            UserInputService.InputChanged:Connect(function(inp)
+                if not panel.Visible then return end
+                if inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch then
+                    if draggingHue then processHue(inp.Position.Y) end
+                    if draggingCanvas then processCanvas(inp.Position.X, inp.Position.Y) end
+                end
+            end)
+            UserInputService.InputEnded:Connect(function(inp)
+                if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+                    draggingHue = false; draggingCanvas = false
+                end
+            end)
+
+            -- Toggle
+            local isOpen = false
+            local hBtn = Instance.new("TextButton", head)
+            hBtn.Size = UDim2.new(1,0,1,0); hBtn.BackgroundTransparency = 1; hBtn.Text = ""; hBtn.ZIndex = 7
+            hBtn.MouseButton1Click:Connect(function()
+                PlayClickSound()
+                if isOpen then
+                    isOpen = false; panel.Visible = false
+                    TweenService:Create(arrow,TweenInfo.new(0.2),{Rotation=0}):Play()
+                else
+                    isOpen = true
+                    local ah = head.AbsolutePosition; local am = main.AbsolutePosition
+                    local mW = main.AbsoluteSize.X; local mH = main.AbsoluteSize.Y
+                    local relX = ah.X - am.X
+                    -- Clamp X: không vượt phải
+                    relX = math.clamp(relX, 4, mW - PANEL_W - 4)
+                    -- Thử lên trên trước
+                    local relY = ah.Y - am.Y - PANEL_H - 4
+                    -- Nếu bị âm (trên cùng) thì đặt xuống dưới
+                    if relY < 4 then relY = ah.Y - am.Y + 30 end
+                    -- Clamp Y: không vượt dưới
+                    relY = math.clamp(relY, 4, mH - PANEL_H - 4)
+                    panel.Position = UDim2.new(0, relX, 0, relY)
+                    panel.Visible = true
+                    TweenService:Create(arrow,TweenInfo.new(0.2),{Rotation=180}):Play()
+                    updateColor()
+                end
+            end)
+
+            updateColor()
+            yOffset = yOffset + 32
+        end
+                function elements:AddSection(text)
             local capturedY = yOffset
             -- Bar có icon Tokai bên trái
             local bar = Instance.new("Frame", page)
@@ -1840,6 +2037,8 @@ mainTab:AddSlider("Slider 0 → 100%", 0, 100, "testSlider2", "%", function(val)
 mainTab:AddSection("📋 Dropdown Test")
 mainTab:AddDropdown("Chọn bộ phận", {"Head","Root","Torso","LeftArm","RightArm"}, "testDrop1", function(val) print("[Dropdown 1]", val) end)
 mainTab:AddDropdown("Chọn tùy chọn", {"Option A","Option B","Option C"}, "testDrop2", function(val) print("[Dropdown 2]", val) end)
+mainTab:AddSection("🎨 Color Picker")
+mainTab:AddColorPicker("Chon mau", "testColor", function(col) end)
 mainTab:AddSection("🎮 Button Test")
 mainTab:AddButton("▶ Chạy Test", function() print("[Button] Đã nhấn!") end, "Test thành công!", "✅")
 
