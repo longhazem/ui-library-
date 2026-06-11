@@ -1849,6 +1849,8 @@ function Library:CreateWindow()
         TweenService:Create(main, TweenInfo.new(0.5,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
             {Size=UDim2.new(0,FRAME_W,0,FRAME_H), BackgroundTransparency=0.3}):Play()
     end)
+
+    return Library
 end
 
 -- ═══════════════════════════════════════════
