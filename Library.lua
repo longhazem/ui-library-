@@ -28,12 +28,12 @@ local Toggles = {}
 local Options = {}
 local Tooltips = {}
 
-local BaseURL = "https://raw.githubusercontent.com/mmr1337/Obsidian/refs/heads/main/"
+local BaseURL = "https://raw.githubusercontent.com/longhazem/ui-library-/refs/heads/main/"
 local CustomImageManager = {}
 local CustomImageManagerAssets = {
     TransparencyTexture = {
         RobloxId = 139785960036434,
-        Path = "Obsidian/assets/TransparencyTexture.png",
+        Path = "ui-library-/assets/TransparencyTexture.png",
         URL = BaseURL .. "assets/TransparencyTexture.png",
 
         Id = nil,
@@ -49,7 +49,7 @@ local CustomImageManagerAssets = {
 
         LoadingIcon = {
         RobloxId = 97544096941083,
-        Path = "Obsidian/assets/LoadingIcon.png",
+        Path = "ui-library-/assets/LoadingIcon.png",
         URL = BaseURL .. "assets/LoadingIcon.png",
 
         Id = nil,
@@ -57,7 +57,7 @@ local CustomImageManagerAssets = {
 
     CheckIcon = {
         RobloxId = 97682394690683,
-        Path = "Obsidian/assets/CheckIcon.png",
+        Path = "ui-library-/assets/CheckIcon.png",
         URL = BaseURL .. "assets/CheckIcon.png",
 
         Id = nil,
@@ -65,7 +65,7 @@ local CustomImageManagerAssets = {
 
     Glow = {
         RobloxId = 88645182616510,
-        Path = "Obsidian/assets/Glow.png",
+        Path = "ui-library-/assets/Glow.png",
         URL = BaseURL .. "assets/Glow.png",
 
         Id = nil,
@@ -110,7 +110,7 @@ do
 
         CustomImageManagerAssets[AssetName] = {
             RobloxId = RobloxAssetId,
-            Path = string.format("Obsidian/custom_assets/%s", AssetName),
+            Path = string.format("ui-library-/custom_assets/%s", AssetName),
             URL = URL,
 
             Id = nil,
